@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { cn, getNoteColorStyle } from '@/lib/utils'
 import type { Note, NoteSharedWith } from '@notes/shared'
 import { NoteActions } from './NoteActions'
@@ -18,8 +18,6 @@ const NAMED_SIZE_CLASSES: Record<string, string> = {
   LARGE: 'min-h-[280px] max-h-[320px] overflow-hidden',
   AUTO: 'min-h-[80px]',
 }
-const MIN_HEIGHT = 100  // absolute minimum drag height in px (matches SMALL)
-const MIN_WIDTH  = 180  // absolute minimum drag width in px
 
 /**
  * Parses the stored size string into pixel dimensions.
@@ -40,14 +38,8 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, view = 'active' }: NoteCardProps) {
-  const cardRef = useRef<HTMLDivElement>(null)
   const [editorOpen, setEditorOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
-  const [dragHeight, setDragHeight] = useState<number | null>(null)
-  const [dragWidth,  setDragWidth]  = useState<number | null>(null) // tracked for save, not applied inline
-  const [isResizing, setIsResizing] = useState(false)
-  // Prevents the card click from firing immediately after a resize gesture ends
-  const justResizedRef = useRef(false)
 
   const setGlobalEditorOpen = useUIStore((s) => s.setEditorOpen)
   const selectedNoteIds   = useUIStore((s) => s.selectedNoteIds)
@@ -72,14 +64,9 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
     return () => { if (editorOpen) setGlobalEditorOpen(false) }
   }, [editorOpen, setGlobalEditorOpen])
 
-  // Resolve effective dimensions:
-  //   dragHeight → live height during resize (applied as minHeight inline style)
-  //   savedHeight → previously persisted pixel height
-  //   null → fall back to named CSS size class
-  // NOTE: width is intentionally NOT applied as inline style — it drives grid-column
-  //   span on the SortableNoteCard wrapper in NoteGrid.tsx instead.
+  // Resolve pixel height from the stored size string (WxH or legacy H-only format)
   const { height: savedHeight } = parseSize(note.size)
-  const effectiveHeight = dragHeight ?? savedHeight
+  const effectiveHeight = savedHeight
 
   const nextReminder = note.reminders.find((r) => r.nextOccurrence && !r.isAcknowledged)
 
@@ -100,52 +87,8 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
     return null
   })()
 
-  // ─── Bidirectional drag-to-resize ─────────────────────────────────────────
-  function handleResizePointerDown(e: React.PointerEvent<HTMLDivElement>) {
-    e.stopPropagation()
-    e.preventDefault()
-
-    const card = cardRef.current
-    if (!card) return
-
-    const startY = e.clientY
-    const startX = e.clientX
-    const rect   = card.getBoundingClientRect()
-    const startH = rect.height
-    const startW = rect.width
-    let liveH = startH
-    let liveW = startW
-
-    setIsResizing(true)
-
-    function onMove(ev: PointerEvent) {
-      liveH = Math.max(MIN_HEIGHT, startH + ev.clientY - startY)
-      liveW = Math.max(MIN_WIDTH,  startW + ev.clientX - startX)
-      setDragHeight(liveH)
-      setDragWidth(liveW)
-    }
-
-    function onUp() {
-      document.removeEventListener('pointermove', onMove)
-      document.removeEventListener('pointerup',   onUp)
-      document.removeEventListener('pointercancel', onUp)
-      setDragHeight(null)
-      setDragWidth(null)
-      setIsResizing(false)
-      // Prevent the pointer-up from triggering a card open
-      justResizedRef.current = true
-      setTimeout(() => { justResizedRef.current = false }, 150)
-      // Persist as "WxH" format
-      updateNote.mutate({ id: note.id, size: `${Math.round(liveW)}x${Math.round(liveH)}` })
-    }
-
-    document.addEventListener('pointermove', onMove)
-    document.addEventListener('pointerup',   onUp)
-    document.addEventListener('pointercancel', onUp)
-  }
-
   function handleCardClick() {
-    if (view === 'trashed' || isResizing || justResizedRef.current) return
+    if (view === 'trashed') return
     if (isSelectMode) {
       toggleNoteSelection(note.id)
       return
@@ -156,27 +99,22 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
   return (
     <>
       <div
-        ref={cardRef}
         className={cn(
-          'relative rounded-lg border cursor-pointer group',
-          !isResizing && 'transition-shadow duration-150',
+          'relative rounded-lg border cursor-pointer group transition-shadow duration-150',
           'hover:shadow-md',
           colorClass,
           // Apply named size class only when no pixel height is set
           effectiveHeight === null && (NAMED_SIZE_CLASSES[note.size] ?? NAMED_SIZE_CLASSES.AUTO),
           // HA-inspired: primary border glow + elevation instead of flat ring
           isSelected && '!border-primary/60 shadow-[0_0_0_2px_hsl(var(--primary)/0.5),0_6px_24px_-4px_hsl(var(--primary)/0.2)] z-10',
-          isResizing   && 'select-none z-50',
         )}
         style={{
           ...colorStyle,
           ...(effectiveHeight !== null ? { minHeight: `${effectiveHeight}px` } : {}),
-          // Width is controlled via grid-column span on the wrapper (NoteGrid.tsx).
-          // Setting inline width here would overflow the grid cell and cause overlaps.
         }}
         onClick={handleCardClick}
         onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => { if (!isResizing) setHovered(false) }}
+        onMouseLeave={() => setHovered(false)}
       >
         {/* ── Top-right: selection checkbox (select mode) OR pin indicator ── */}
         {isSelectMode ? (
@@ -271,16 +209,19 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
           </div>
         )}
 
-        {/* ── Action toolbar (visible on hover, hidden in select/resize) ──── */}
+        {/* ── Action toolbar (visible on hover, hidden in select mode) ─────── */}
         <div
           className={cn(
             'absolute bottom-0 left-0 right-0 rounded-b-lg pt-8 pb-1.5 px-1.5',
             'bg-gradient-to-t from-black/15 dark:from-black/30 via-transparent to-transparent',
             'transition-opacity duration-100',
-            hovered && !isSelectMode && !isResizing ? 'opacity-100' : 'opacity-0',
+            // pointer-events-none on the overlay so clicks to note content always register;
+            // pointer-events-auto re-enabled on the inner buttons row only
+            'pointer-events-none',
+            hovered && !isSelectMode ? 'opacity-100' : 'opacity-0',
           )}
         >
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between pointer-events-auto">
             {/* Shared-with avatars — left side */}
             {note.sharedWith.length > 0 ? (
               <div className="flex items-center pl-1.5">
@@ -290,47 +231,11 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
               <div />
             )}
             {/* Action buttons — right side */}
-            <div className="flex items-center pr-4">
+            <div className="flex items-center pr-1">
               <NoteActions note={note} view={view} onEdit={() => setEditorOpen(true)} compact />
             </div>
           </div>
         </div>
-
-        {/* ── Resize handle (bottom-right corner) ──────────────────────────── */}
-        {view !== 'trashed' && !isSelectMode && (
-          <div
-            className={cn(
-              'absolute bottom-0.5 right-0.5 w-3.5 h-3.5',
-              'flex items-end justify-end pb-px pr-px',
-              'cursor-se-resize transition-opacity duration-100',
-              hovered || isResizing ? 'opacity-50 hover:opacity-90' : 'opacity-0',
-            )}
-            onPointerDown={handleResizePointerDown}
-            title="Drag to resize"
-          >
-            {/* Classic 3-dot diagonal resize indicator */}
-            <svg
-              width="7"
-              height="7"
-              viewBox="0 0 8 8"
-              fill="currentColor"
-              className="text-foreground"
-            >
-              <circle cx="7" cy="7" r="1.1" />
-              <circle cx="4" cy="7" r="1.1" />
-              <circle cx="7" cy="4" r="1.1" />
-            </svg>
-          </div>
-        )}
-
-        {/* Size tooltip during active resize */}
-        {isResizing && (dragHeight !== null || dragWidth !== null) && (
-          <div className="absolute bottom-7 right-2 text-[9px] font-mono text-foreground/60 select-none pointer-events-none bg-background/70 px-1 rounded">
-            {dragWidth !== null ? `${Math.round(dragWidth)}` : ''}
-            {dragWidth !== null && dragHeight !== null ? '×' : ''}
-            {dragHeight !== null ? `${Math.round(dragHeight)}` : ''}px
-          </div>
-        )}
       </div>
 
       {editorOpen && (

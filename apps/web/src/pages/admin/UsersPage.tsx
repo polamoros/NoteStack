@@ -2,7 +2,8 @@ import { trpc } from '@/api/client'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Shield, ShieldOff, UserX, UserCheck, Pencil, KeyRound, X, Check } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Shield, ShieldOff, UserX, UserCheck, Pencil, KeyRound, X, Check, UserPlus } from 'lucide-react'
 import { authClient } from '@/lib/auth-client'
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
@@ -122,6 +123,103 @@ function SetPasswordRow({
   )
 }
 
+// ── Create user dialog ────────────────────────────────────────────────────────
+function CreateUserDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const qc = useQueryClient()
+  const [name, setName]         = useState('')
+  const [email, setEmail]       = useState('')
+  const [password, setPassword] = useState('')
+  const [role, setRole]         = useState<'user' | 'admin'>('user')
+  const [err, setErr]           = useState('')
+
+  const createUser = trpc.admin.users.createUser.useMutation({
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: [['admin', 'users']] })
+      setName(''); setEmail(''); setPassword(''); setRole('user'); setErr('')
+      onClose()
+    },
+    onError: (e) => setErr(e.message),
+  })
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setErr('')
+    createUser.mutate({ name, email, password, role })
+  }
+
+  function handleOpenChange(open: boolean) {
+    if (!open) { setName(''); setEmail(''); setPassword(''); setRole('user'); setErr(''); onClose() }
+  }
+
+  const inputCls = cn(
+    'w-full text-sm px-2.5 py-1.5 rounded-md border border-input bg-background',
+    'focus:outline-none focus:ring-2 focus:ring-ring',
+  )
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Create User</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-3 py-2">
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Name</label>
+            <input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Full name"
+              required
+              className={inputCls}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Email</label>
+            <input
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="email@example.com"
+              type="email"
+              required
+              className={inputCls}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Password</label>
+            <input
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Minimum 8 characters"
+              type="password"
+              required
+              minLength={8}
+              className={inputCls}
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">Role</label>
+            <select
+              value={role}
+              onChange={(e) => setRole(e.target.value as 'user' | 'admin')}
+              className={inputCls}
+            >
+              <option value="user">User</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          {err && <p className="text-xs text-destructive">{err}</p>}
+          <DialogFooter className="pt-2">
+            <Button type="button" variant="ghost" onClick={onClose}>Cancel</Button>
+            <Button type="submit" disabled={createUser.isPending}>
+              {createUser.isPending ? 'Creating…' : 'Create user'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ── Main page ─────────────────────────────────────────────────────────────────
 export function AdminUsersPage() {
   const qc = useQueryClient()
@@ -129,8 +227,9 @@ export function AdminUsersPage() {
   const { data, isLoading } = trpc.admin.users.list.useQuery({})
   const users = data?.users ?? []
 
-  const [editingId, setEditingId]   = useState<string | null>(null)
-  const [passwordId, setPasswordId] = useState<string | null>(null)
+  const [editingId, setEditingId]     = useState<string | null>(null)
+  const [passwordId, setPasswordId]   = useState<string | null>(null)
+  const [createOpen, setCreateOpen]   = useState(false)
 
   function invalidate() {
     qc.invalidateQueries({ queryKey: [['admin', 'users']] })
@@ -142,7 +241,15 @@ export function AdminUsersPage() {
 
   return (
     <div className="max-w-3xl space-y-4">
-      <h1 className="text-2xl font-bold">Users</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Users</h1>
+        <Button onClick={() => setCreateOpen(true)} size="sm">
+          <UserPlus className="h-4 w-4 mr-1.5" />
+          Create user
+        </Button>
+      </div>
+
+      <CreateUserDialog open={createOpen} onClose={() => setCreateOpen(false)} />
 
       {isLoading && <p className="text-muted-foreground">Loading…</p>}
 

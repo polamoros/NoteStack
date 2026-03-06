@@ -19,8 +19,9 @@ export function NoteMultiSelectBar() {
 
   if (selectedNoteIds.length === 0) return null
 
-  // Get notes from cache to compute per-label attachment state
-  const cachedNotes: any[] = (qc.getQueryData([['notes', 'list']]) as any)?.notes ?? []
+  // tRPC includes input params in the query key, so we match by prefix and flatten all pages
+  const queriesData = qc.getQueriesData<any>({ queryKey: [['notes', 'list']] })
+  const cachedNotes: any[] = queriesData.flatMap(([, data]) => data?.notes ?? [])
   const selectedNotes = cachedNotes.filter((n: any) => selectedNoteIds.includes(n.id))
 
   function getLabelState(labelId: string): 'all' | 'some' | 'none' {

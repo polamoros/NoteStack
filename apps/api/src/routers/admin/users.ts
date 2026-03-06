@@ -123,6 +123,32 @@ export const adminUsersRouter = router({
       return { success: true }
     }),
 
+  createUser: adminProcedure
+    .input(z.object({
+      name: z.string().min(1),
+      email: z.string().email(),
+      password: z.string().min(8),
+      role: z.enum(['user', 'admin']).default('user'),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const headers = new Headers()
+      const cookie = (ctx.req.headers as Record<string, string>).cookie
+      if (cookie) headers.set('cookie', cookie)
+      const authorization = (ctx.req.headers as Record<string, string>).authorization
+      if (authorization) headers.set('authorization', authorization)
+
+      await auth.api.createUser({
+        body: {
+          name: input.name,
+          email: input.email,
+          password: input.password,
+          role: input.role,
+        },
+        headers,
+      })
+      return { success: true }
+    }),
+
   stats: adminProcedure.query(async ({ ctx }) => {
     const [userCount, noteCount, dbSizeResult] = await Promise.all([
       ctx.db.user.count(),

@@ -14,9 +14,11 @@ import { Loader2, Check } from 'lucide-react'
 interface NoteEditorProps {
   note: Note
   onClose: () => void
+  /** Called with the note id if the editor is closed while the note has no content. */
+  onEmptyClose?: (noteId: string) => void
 }
 
-export function NoteEditor({ note, onClose }: NoteEditorProps) {
+export function NoteEditor({ note, onClose, onEmptyClose }: NoteEditorProps) {
   const qc = useQueryClient()
   const [title, setTitle] = useState(note.title)
   const [content, setContent] = useState(note.content)
@@ -57,10 +59,20 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
   })
 
   const currentNote = latestNote ?? note
+
+  function handleClose() {
+    const isEmpty =
+      !title.trim() &&
+      !content &&
+      currentNote.todoItems.length === 0 &&
+      currentNote.taskSteps.length === 0
+    if (isEmpty && onEmptyClose) onEmptyClose(note.id)
+    onClose()
+  }
   const { className: colorClass, style: colorStyle } = getNoteColorStyle(currentNote.color)
 
   return (
-    <Dialog open onOpenChange={(open) => !open && onClose()}>
+    <Dialog open onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
         className={cn('max-w-lg w-full p-0 gap-0 overflow-hidden', colorClass)}
         style={colorStyle}
@@ -127,7 +139,7 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
             </span>
             <button
               className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded"
-              onClick={onClose}
+              onClick={handleClose}
             >
               Close
             </button>

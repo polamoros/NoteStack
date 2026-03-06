@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { generateKeyBetween } from 'fractional-indexing'
 import { trpc } from '@/api/client'
 import { useQueryClient } from '@tanstack/react-query'
@@ -18,6 +18,7 @@ import { NoteCard } from './NoteCard'
 import type { Note } from '@notes/shared'
 import { cn, getNoteColorStyle } from '@/lib/utils'
 import { useUIStore } from '@/store/ui.store'
+import { Pencil, Trash2, X, Check, GripVertical } from 'lucide-react'
 
 interface NoteGridProps {
   notes: Note[]
@@ -36,13 +37,105 @@ function getColSpan(size: string): number {
   return 1
 }
 
+// ── Section separator card ─────────────────────────────────────────────────────
+function SectionCard({ note, view, dragListeners }: { note: Note; view: string; dragListeners?: Record<string, unknown> }) {
+  const qc = useQueryClient()
+  const [editing, setEditing] = useState(false)
+  const [title, setTitle] = useState(note.title || 'Section')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  const updateNote = trpc.notes.update.useMutation({
+    onSuccess: () => qc.invalidateQueries({ queryKey: [['notes']] }),
+  })
+  const trashNote = trpc.notes.trash.useMutation({
+    onSuccess: () => qc.invalidateQueries({ queryKey: [['notes']] }),
+  })
+
+  function startEdit() {
+    setTitle(note.title || 'Section')
+    setEditing(true)
+    setTimeout(() => inputRef.current?.focus(), 0)
+  }
+
+  function save() {
+    const t = title.trim() || 'Section'
+    setTitle(t)
+    setEditing(false)
+    if (t !== note.title) updateNote.mutate({ id: note.id, title: t })
+  }
+
+  function handleKey(e: React.KeyboardEvent) {
+    if (e.key === 'Enter') save()
+    if (e.key === 'Escape') { setEditing(false); setTitle(note.title || 'Section') }
+  }
+
+  return (
+    <div className="group flex items-center gap-2 py-3 px-1">
+      {/* Drag handle — only shown when drag is enabled */}
+      {dragListeners && (
+        <div
+          {...(dragListeners as React.HTMLAttributes<HTMLDivElement>)}
+          className="cursor-grab active:cursor-grabbing p-0.5 text-muted-foreground opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity touch-none"
+          title="Drag to reorder"
+        >
+          <GripVertical className="h-4 w-4" />
+        </div>
+      )}
+      <div className="flex-1 h-px bg-border" />
+
+      {editing ? (
+        <div className="flex items-center gap-1">
+          <input
+            ref={inputRef}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            onBlur={save}
+            onKeyDown={handleKey}
+            className="text-xs font-semibold uppercase tracking-wider text-muted-foreground bg-transparent outline-none border-b border-primary min-w-[80px] max-w-[240px] text-center"
+          />
+          <button onClick={save} className="p-0.5 rounded hover:bg-accent text-muted-foreground">
+            <Check className="h-3 w-3" />
+          </button>
+          <button onClick={() => { setEditing(false); setTitle(note.title || 'Section') }} className="p-0.5 rounded hover:bg-accent text-muted-foreground">
+            <X className="h-3 w-3" />
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={startEdit}
+          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1 px-1"
+          title="Click to rename section"
+        >
+          {note.title || 'Section'}
+          <Pencil className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 transition-opacity" />
+        </button>
+      )}
+
+      <div className="flex-1 h-px bg-border" />
+
+      {/* Delete button — visible on hover, only in active view */}
+      {view === 'active' && !editing && (
+        <button
+          onClick={() => trashNote.mutate({ id: note.id })}
+          className="opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity p-0.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
+          title="Remove section"
+        >
+          <Trash2 className="h-3 w-3" />
+        </button>
+      )}
+    </div>
+  )
+}
+
 function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archived' | 'trashed' }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: note.id,
     disabled: view !== 'active',
   })
 
-  const colSpan = getColSpan(note.size)
+  // SECTION notes span the full grid width
+  const isSection = note.type === 'SECTION'
+  const colSpan = isSection ? undefined : getColSpan(note.size)
 
   return (
     <div
@@ -52,13 +145,17 @@ function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archiv
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0 : 1,
-        // Span multiple columns for wide notes (WxH format or LARGE)
-        gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
+        // Sections span full width; wide notes span multiple columns
+        gridColumn: isSection ? '1 / -1' : colSpan && colSpan > 1 ? `span ${colSpan}` : undefined,
       }}
-      {...attributes}
-      {...listeners}
+      // Non-section notes: drag listeners on the whole card
+      {...(!isSection ? { ...attributes, ...listeners } : { ...attributes })}
     >
-      <NoteCard note={note} view={view} />
+      {isSection
+        // Sections: listeners forwarded to the grip handle inside SectionCard
+        ? <SectionCard note={note} view={view} dragListeners={listeners} />
+        : <NoteCard note={note} view={view} />
+      }
     </div>
   )
 }
@@ -154,8 +251,9 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
   )
 
-  const pinned = notes.filter((n) => n.isPinned)
-  const unpinned = notes.filter((n) => !n.isPinned)
+  // Sections are never pinned — keep them in the unpinned list regardless
+  const pinned = notes.filter((n) => n.isPinned && n.type !== 'SECTION')
+  const unpinned = notes.filter((n) => !n.isPinned || n.type === 'SECTION')
 
   function handleDragStart({ active }: DragStartEvent) {
     setActiveNote(notes.find((n) => n.id === active.id) ?? null)

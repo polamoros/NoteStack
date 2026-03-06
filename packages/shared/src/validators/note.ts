@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const NOTE_TYPES = ['RICH', 'TODO', 'TASK'] as const
+export const NOTE_TYPES = ['RICH', 'TODO', 'TASK', 'SECTION'] as const
 export const NOTE_SIZES = ['SMALL', 'MEDIUM', 'LARGE', 'AUTO'] as const
 export const NOTE_COLORS = [
   'DEFAULT', 'RED', 'ORANGE', 'YELLOW', 'GREEN',

@@ -1,4 +1,4 @@
-export type NoteType = 'RICH' | 'TODO' | 'TASK'
+export type NoteType = 'RICH' | 'TODO' | 'TASK' | 'SECTION'
 export type NoteSize = 'SMALL' | 'MEDIUM' | 'LARGE' | 'AUTO'
 export type NoteStatus = 'ACTIVE' | 'ARCHIVED' | 'TRASHED'
 
