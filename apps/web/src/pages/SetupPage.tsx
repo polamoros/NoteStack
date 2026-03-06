@@ -17,7 +17,6 @@ export function SetupPage() {
   const [loading, setLoading] = useState(false)
 
   const completeSetup = trpc.settings.completeSetup.useMutation()
-  const updateSettings = trpc.admin.settings.update.useMutation()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -25,20 +24,15 @@ export function SetupPage() {
     setLoading(true)
 
     try {
-      // Create the first admin user
+      // Create the first admin user (auto-promoted via database hook)
       const result = await authClient.signUp.email({ name, email, password })
       if (result.error) {
         setError(result.error.message ?? 'Failed to create account')
         return
       }
 
-      // Mark setup as complete
-      await completeSetup.mutateAsync()
-
-      // Update instance name
-      if (instanceName !== 'Notes') {
-        await updateSettings.mutateAsync({ instanceName })
-      }
+      // Mark setup as complete and save instance name
+      await completeSetup.mutateAsync({ instanceName })
 
       navigate('/')
     } catch (err: any) {

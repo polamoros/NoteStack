@@ -1,18 +1,21 @@
+import { useParams } from 'react-router-dom'
 import { trpc } from '@/api/client'
 import { NoteGrid } from '@/components/notes/NoteGrid'
 import { NoteCreateBar } from '@/components/notes/NoteCreateBar'
 import { useFilterStore } from '@/store/filter.store'
-import { useDebounce } from '@/hooks/useDebounce'
-import { FileText } from 'lucide-react'
+import { Layers } from 'lucide-react'
 
-export function NotesPage() {
-  const { searchQuery, activeLabelId } = useFilterStore()
+export function StackPage() {
+  const { id } = useParams<{ id: string }>()
+  const { searchQuery } = useFilterStore()
 
-  const { data: notesData, isLoading } = trpc.notes.list.useQuery({
-    status: 'ACTIVE',
-    labelId: activeLabelId ?? undefined,
-    stackId: null,   // Only show notes not assigned to any stack (the default workspace)
-  })
+  const { data: stacks } = trpc.stacks.list.useQuery()
+  const stack = stacks?.find((s) => s.id === id)
+
+  const { data: notesData, isLoading } = trpc.notes.list.useQuery(
+    { status: 'ACTIVE', stackId: id },
+    { enabled: !!id },
+  )
 
   const { data: searchResults } = trpc.search.query.useQuery(
     { q: searchQuery },
@@ -26,7 +29,7 @@ export function NotesPage() {
     return (
       <div className="p-6 max-w-[1400px] mx-auto">
         <div className="note-grid">
-          {Array.from({ length: 8 }).map((_, i) => (
+          {Array.from({ length: 6 }).map((_, i) => (
             <div key={i} className="note-card-wrapper">
               <div className="rounded-lg border bg-secondary/30 animate-pulse h-32" />
             </div>
@@ -38,9 +41,13 @@ export function NotesPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-[1400px] mx-auto">
-      {!isSearching && (
-        <NoteCreateBar stackId={null} />
-      )}
+      {/* Stack header */}
+      <div className="flex items-center gap-2">
+        <Layers className="h-5 w-5 text-muted-foreground" />
+        <h1 className="text-xl font-semibold">{stack?.name ?? 'Stack'}</h1>
+      </div>
+
+      {!isSearching && <NoteCreateBar stackId={id} />}
 
       {isSearching && (
         <p className="text-sm text-muted-foreground">
@@ -50,9 +57,9 @@ export function NotesPage() {
 
       {notes.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 text-muted-foreground">
-          <FileText className="h-16 w-16 mb-4 opacity-20" />
+          <Layers className="h-16 w-16 mb-4 opacity-20" />
           <p className="text-lg font-medium">
-            {isSearching ? 'No results found' : 'No notes yet'}
+            {isSearching ? 'No results found' : 'No notes in this stack'}
           </p>
           <p className="text-sm">
             {isSearching ? 'Try a different search term' : 'Start by creating a new note above'}

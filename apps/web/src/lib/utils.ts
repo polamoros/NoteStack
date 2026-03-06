@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx'
 import { twMerge } from 'tailwind-merge'
+import type { CSSProperties } from 'react'
 import type { NoteColor } from '@notes/shared'
 
 export function cn(...inputs: ClassValue[]) {
@@ -38,6 +39,14 @@ export const NOTE_COLORS_LIST: NoteColor[] = [
   'DEFAULT', 'RED', 'ORANGE', 'YELLOW', 'GREEN',
   'TEAL', 'BLUE', 'PURPLE', 'PINK', 'BROWN', 'GRAY',
 ]
+
+/** Returns className for predefined colors, or inline style for custom hex colors. */
+export function getNoteColorStyle(color: string): { className: string; style?: CSSProperties } {
+  if (color.startsWith('#')) {
+    return { className: '', style: { backgroundColor: color } }
+  }
+  return { className: NOTE_COLOR_CLASSES[color as NoteColor] ?? 'bg-note-default' }
+}
 
 export function formatReminderDate(dateStr: string): string {
   const date = new Date(dateStr)

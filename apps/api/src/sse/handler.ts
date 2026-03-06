@@ -3,7 +3,7 @@ import { auth } from '../auth/auth.js'
 import { registerSseClient } from '../services/reminder.service.js'
 
 export async function sseHandler(req: Request, res: Response): Promise<void> {
-  const session = await auth.api.getSession({ headers: req.headers as Headers })
+  const session = await auth.api.getSession({ headers: req.headers as unknown as Headers })
   if (!session) {
     res.status(401).json({ error: 'Unauthorized' })
     return

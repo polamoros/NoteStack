@@ -38,6 +38,14 @@ export interface NoteLabel {
   id: string
   name: string
   color: string | null
+  icon: string | null
+}
+
+export interface NoteSharedWith {
+  userId: string
+  name: string | null
+  image: string | null
+  permission: string
 }
 
 export interface Note {
@@ -47,17 +55,20 @@ export interface Note {
   userId: string
   title: string
   type: NoteType
-  color: NoteColor
-  size: NoteSize
+  color: string
+  size: string  // NoteSize named values OR a numeric pixel string e.g. "320"
   status: NoteStatus
   isPinned: boolean
   content: string | null
   sortOrder: string
   trashedAt: string | null
+  publicShareToken: string | null
+  stackId: string | null
   todoItems: TodoItem[]
   taskSteps: TaskStep[]
   labels: NoteLabel[]
   reminders: NoteReminder[]
+  sharedWith: NoteSharedWith[]
 }
 
 export interface NoteReminder {

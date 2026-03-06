@@ -2,13 +2,14 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "./dist",
-    "rootDir": "./src",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
+    "declaration": false,
+    "declarationMap": false,
     "paths": {
       "@notes/shared": ["../../packages/shared/src/index.ts"]
     }
   },
-  "include": ["src", "prisma"],
+  "include": ["src", "prisma", "../../packages/shared/src"],
   "exclude": ["node_modules", "dist"]
 }

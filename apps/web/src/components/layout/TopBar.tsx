@@ -1,4 +1,4 @@
-import { Search, LayoutGrid, List, Menu, Bell } from 'lucide-react'
+import { Search, LayoutGrid, List, Menu, Sun, Moon, Monitor } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useUIStore } from '@/store/ui.store'
@@ -12,7 +12,7 @@ import { useSSE } from '@/hooks/useSSE'
 import { authClient } from '@/lib/auth-client'
 
 export function TopBar() {
-  const { toggleSidebar, viewMode, setViewMode } = useUIStore()
+  const { toggleSidebar, viewMode, setViewMode, theme, setTheme } = useUIStore()
   const { searchQuery, setSearchQuery } = useFilterStore()
   const [inputValue, setInputValue] = useState(searchQuery)
   const debouncedSearch = useDebounce(inputValue, 300)
@@ -26,7 +26,6 @@ export function TopBar() {
     },
   })
 
-  // SSE connection for reminder notifications
   useSSE(!!session, {
     onReminder: (data: any) => {
       toast({
@@ -50,8 +49,13 @@ export function TopBar() {
     setSearchQuery(debouncedSearch)
   }, [debouncedSearch, setSearchQuery])
 
+  function cycleTheme() {
+    const next = theme === 'light' ? 'dark' : theme === 'dark' ? 'system' : 'light'
+    setTheme(next)
+  }
+
   return (
-    <header className="flex items-center gap-3 px-4 py-3 border-b bg-background/95 backdrop-blur sticky top-0 z-10">
+    <header className="flex items-center gap-3 px-4 h-[60px] shrink-0 border-b bg-background/95 backdrop-blur sticky top-0 z-10">
       <Button variant="ghost" size="icon-sm" onClick={toggleSidebar} className="shrink-0">
         <Menu className="h-4 w-4" />
       </Button>
@@ -67,7 +71,7 @@ export function TopBar() {
         />
       </div>
 
-      {/* View toggle */}
+      {/* Right controls */}
       <div className="flex items-center gap-1 shrink-0">
         <Button
           variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
@@ -84,6 +88,20 @@ export function TopBar() {
           title="List view"
         >
           <List className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={cycleTheme}
+          title={`Theme: ${theme}`}
+        >
+          {theme === 'dark' ? (
+            <Moon className="h-4 w-4" />
+          ) : theme === 'system' ? (
+            <Monitor className="h-4 w-4" />
+          ) : (
+            <Sun className="h-4 w-4" />
+          )}
         </Button>
       </div>
     </header>

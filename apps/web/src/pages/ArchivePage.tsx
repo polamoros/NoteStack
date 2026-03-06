@@ -7,7 +7,7 @@ export function ArchivePage() {
   const notes = data?.notes ?? []
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-4 max-w-[1400px] mx-auto">
       <h1 className="text-xl font-semibold">Archive</h1>
 
       {isLoading && (

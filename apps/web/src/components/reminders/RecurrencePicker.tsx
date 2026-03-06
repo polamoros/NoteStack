@@ -1,5 +1,4 @@
 import { useState } from 'react'
-import type { RRule } from 'rrule'
 
 interface RecurrencePickerProps {
   value: string | null

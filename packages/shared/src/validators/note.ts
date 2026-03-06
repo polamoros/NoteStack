@@ -11,17 +11,19 @@ export const NOTE_STATUSES = ['ACTIVE', 'ARCHIVED', 'TRASHED'] as const
 export const createNoteSchema = z.object({
   title: z.string().default(''),
   type: z.enum(NOTE_TYPES).default('RICH'),
-  color: z.enum(NOTE_COLORS).default('DEFAULT'),
-  size: z.enum(NOTE_SIZES).default('AUTO'),
+  color: z.string().default('DEFAULT'),
+  size: z.string().default('AUTO'),   // named (SMALL/MEDIUM/LARGE/AUTO) or numeric px string
   content: z.string().optional(),
+  stackId: z.string().nullable().optional(),
 })
 
 export const updateNoteSchema = z.object({
   title: z.string().optional(),
-  color: z.enum(NOTE_COLORS).optional(),
-  size: z.enum(NOTE_SIZES).optional(),
+  color: z.string().optional(),
+  size: z.string().optional(),   // named (SMALL/MEDIUM/LARGE/AUTO) or numeric px string
   content: z.string().optional(),
   isPinned: z.boolean().optional(),
+  stackId: z.string().nullable().optional(),
 })
 
 export type CreateNoteInput = z.infer<typeof createNoteSchema>

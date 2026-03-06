@@ -3,7 +3,7 @@ import { auth } from '../auth/auth.js'
 import { prisma } from '../db.js'
 
 export async function createContext({ req, res }: { req: Request; res: Response }) {
-  const session = await auth.api.getSession({ headers: req.headers as Headers })
+  const session = await auth.api.getSession({ headers: req.headers as unknown as Headers })
 
   return {
     req,

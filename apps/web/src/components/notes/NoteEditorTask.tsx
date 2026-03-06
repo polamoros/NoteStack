@@ -59,11 +59,9 @@ export function NoteEditorTask({ noteId, steps }: NoteEditorTaskProps) {
         />
       ))}
 
-      {/* Add step */}
-      <div className="flex items-center gap-2 py-1 mt-1">
-        <div className="h-5 w-5 shrink-0 rounded-full border border-muted-foreground/40 flex items-center justify-center">
-          <Plus className="h-3 w-3 text-muted-foreground" />
-        </div>
+      {/* Add step — same padding as TaskStepRow so Plus aligns with checkboxes */}
+      <div className="flex items-center gap-2 p-1 mt-1 rounded-md">
+        <Plus className="h-5 w-5 shrink-0 text-muted-foreground/50 mt-0.5" />
         <input
           className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
           placeholder="Add step"
@@ -120,18 +118,18 @@ function TaskStepRow({
             onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur() }}
           />
         </div>
-        <div className="flex items-center gap-1 opacity-0 group-hover/step:opacity-100 transition-opacity">
+        <div className="flex items-center shrink-0 opacity-0 group-hover/step:opacity-100 transition-opacity">
           <button
             onClick={() => setExpanded(!expanded)}
-            className="text-muted-foreground hover:text-foreground"
+            className="p-1 text-muted-foreground hover:text-foreground rounded"
           >
-            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', expanded && 'rotate-180')} />
+            <ChevronDown className={cn('h-4 w-4 transition-transform', expanded && 'rotate-180')} />
           </button>
           <button
             onClick={onDelete}
-            className="text-muted-foreground hover:text-destructive"
+            className="p-1 text-muted-foreground hover:text-destructive rounded"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       </div>

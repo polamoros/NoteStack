@@ -39,6 +39,13 @@ function mapNote(note: any) {
       createdAt: r.createdAt.toISOString(),
       updatedAt: r.updatedAt.toISOString(),
     })),
+    // Shared-with users (for avatar display on cards)
+    sharedWith: (note.shares ?? []).map((s: any) => ({
+      userId: s.sharedWithUser.id,
+      name: s.sharedWithUser.name,
+      image: s.sharedWithUser.image,
+      permission: s.permission,
+    })),
   }
 }
 
@@ -47,6 +54,8 @@ export const notesRouter = router({
     .input(z.object({
       status: z.enum(NOTE_STATUSES).default('ACTIVE'),
       labelId: z.string().optional(),
+      // stackId filtering: undefined = all notes, null = inbox (no stack), string = specific stack
+      stackId: z.string().nullable().optional(),
       cursor: z.string().optional(),
       limit: z.number().min(1).max(100).default(50),
     }))
@@ -56,6 +65,8 @@ export const notesRouter = router({
           userId: ctx.user.id,
           status: input.status,
           ...(input.labelId ? { labels: { some: { labelId: input.labelId } } } : {}),
+          // stackId: undefined → no filter; null → stackId IS NULL; string → match
+          ...(input.stackId !== undefined ? { stackId: input.stackId } : {}),
           ...(input.cursor ? { sortOrder: { gt: input.cursor } } : {}),
         },
         orderBy: [{ isPinned: 'desc' }, { sortOrder: 'asc' }, { updatedAt: 'desc' }],
@@ -65,6 +76,7 @@ export const notesRouter = router({
           taskSteps: { orderBy: { sortOrder: 'asc' } },
           labels: { include: { label: true } },
           reminders: true,
+          shares: { include: { sharedWithUser: { select: { id: true, name: true, image: true } } } },
         },
       })
 
@@ -87,6 +99,7 @@ export const notesRouter = router({
           taskSteps: { orderBy: { sortOrder: 'asc' } },
           labels: { include: { label: true } },
           reminders: true,
+          shares: { include: { sharedWithUser: { select: { id: true, name: true, image: true } } } },
         },
       })
       if (!note) throw new TRPCError({ code: 'NOT_FOUND' })

@@ -4,13 +4,15 @@ import { trpc } from '@/api/client'
 import { useQueryClient } from '@tanstack/react-query'
 import type { NoteLabel } from '@notes/shared'
 import { cn } from '@/lib/utils'
+import { LabelIcon } from './LabelIcon'
 
 interface LabelSelectorProps {
   noteId: string
   attachedLabels: NoteLabel[]
+  compact?: boolean
 }
 
-export function LabelSelector({ noteId, attachedLabels }: LabelSelectorProps) {
+export function LabelSelector({ noteId, attachedLabels, compact }: LabelSelectorProps) {
   const qc = useQueryClient()
   const { data: allLabels = [] } = trpc.labels.list.useQuery()
 
@@ -35,10 +37,10 @@ export function LabelSelector({ noteId, attachedLabels }: LabelSelectorProps) {
     <Popover>
       <PopoverTrigger asChild>
         <button
-          className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+          className={`${compact ? 'p-1' : 'p-1.5'} rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}
           title="Labels"
         >
-          <Tag className="h-4 w-4" />
+          <Tag className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-56 p-2" align="start">
@@ -54,12 +56,18 @@ export function LabelSelector({ noteId, attachedLabels }: LabelSelectorProps) {
               onClick={() => toggle(label.id)}
               className="flex items-center gap-2 w-full px-2 py-1.5 rounded text-sm hover:bg-accent transition-colors"
             >
-              <div className={cn('h-4 w-4 rounded-sm border flex items-center justify-center',
+              <div className={cn('h-4 w-4 rounded-sm border flex items-center justify-center shrink-0',
                 attached ? 'bg-primary border-primary' : 'border-muted-foreground/40',
               )}>
                 {attached && <Check className="h-3 w-3 text-primary-foreground" />}
               </div>
-              <span className="truncate">{label.name}</span>
+              <LabelIcon icon={label.icon} color={label.color} size={13} />
+              <span
+                className="truncate flex-1"
+                style={label.color ? { color: label.color } : undefined}
+              >
+                {label.name}
+              </span>
             </button>
           )
         })}

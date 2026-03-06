@@ -1,15 +1,15 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { trpc } from '@/api/client'
 import { useQueryClient } from '@tanstack/react-query'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
-import type { Note } from '@notes/shared'
-import { cn, NOTE_COLOR_CLASSES } from '@/lib/utils'
+import type { Note, NoteLabel } from '@notes/shared'
+import { cn, getNoteColorStyle } from '@/lib/utils'
 import { NoteEditorRich } from './NoteEditorRich'
 import { NoteEditorTodo } from './NoteEditorTodo'
 import { NoteEditorTask } from './NoteEditorTask'
 import { NoteActions } from './NoteActions'
 import { useDebounce } from '@/hooks/useDebounce'
-import { useEffect } from 'react'
+import { Loader2, Check } from 'lucide-react'
 
 interface NoteEditorProps {
   note: Note
@@ -20,13 +20,20 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
   const qc = useQueryClient()
   const [title, setTitle] = useState(note.title)
   const [content, setContent] = useState(note.content)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
   const debouncedTitle = useDebounce(title, 500)
   const debouncedContent = useDebounce(content, 800)
 
+  const hasPendingChanges = title !== debouncedTitle || content !== debouncedContent
+
   const updateNote = trpc.notes.update.useMutation({
+    onMutate: () => setSaveStatus('saving'),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: [['notes']] })
+      setSaveStatus('saved')
+      setTimeout(() => setSaveStatus('idle'), 2000)
     },
+    onError: () => setSaveStatus('idle'),
   })
 
   // Auto-save title
@@ -50,14 +57,13 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
   })
 
   const currentNote = latestNote ?? note
+  const { className: colorClass, style: colorStyle } = getNoteColorStyle(currentNote.color)
 
   return (
     <Dialog open onOpenChange={(open) => !open && onClose()}>
       <DialogContent
-        className={cn(
-          'max-w-lg w-full p-0 gap-0 overflow-hidden',
-          NOTE_COLOR_CLASSES[note.color],
-        )}
+        className={cn('max-w-lg w-full p-0 gap-0 overflow-hidden', colorClass)}
+        style={colorStyle}
       >
         {/* Title */}
         <div className="px-4 pt-4">
@@ -88,7 +94,7 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
         {/* Labels */}
         {currentNote.labels.length > 0 && (
           <div className="px-4 pb-2 flex flex-wrap gap-1">
-            {currentNote.labels.map((label) => (
+            {currentNote.labels.map((label: NoteLabel) => (
               <span
                 key={label.id}
                 className="text-xs px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10"
@@ -102,12 +108,30 @@ export function NoteEditor({ note, onClose }: NoteEditorProps) {
         {/* Footer actions */}
         <div className="flex items-center justify-between px-3 py-2 border-t bg-inherit">
           <NoteActions note={currentNote} />
-          <button
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded"
-            onClick={onClose}
-          >
-            Close
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Save status indicator */}
+            <span className="text-xs text-muted-foreground flex items-center gap-1 min-w-[60px] justify-end">
+              {hasPendingChanges && 'Editing…'}
+              {!hasPendingChanges && saveStatus === 'saving' && (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving…
+                </>
+              )}
+              {!hasPendingChanges && saveStatus === 'saved' && (
+                <>
+                  <Check className="h-3 w-3" />
+                  Saved
+                </>
+              )}
+            </span>
+            <button
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors px-2 py-1 rounded"
+              onClick={onClose}
+            >
+              Close
+            </button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

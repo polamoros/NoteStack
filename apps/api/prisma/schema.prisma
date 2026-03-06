@@ -27,6 +27,8 @@ model User {
   // App relations
   notes         Note[]
   labels        Label[]
+  stacks        Stack[]
+  receivedShares NoteShare[]
 }
 
 model Session {
@@ -86,16 +88,22 @@ model Note {
   content   String?  // Tiptap JSON string for RICH type
   sortOrder String   @default("")         // fractional-indexing string
 
-  trashedAt DateTime?
+  trashedAt        DateTime?
+  publicShareToken String?   @unique  // Set when note is publicly shared via link
+
+  stackId   String?
+  stack     Stack?    @relation(fields: [stackId], references: [id], onDelete: SetNull)
 
   todoItems TodoItem[]
   taskSteps TaskStep[]
   labels    NoteLabel[]
   reminders Reminder[]
+  shares    NoteShare[]
 
   @@index([userId, status])
   @@index([userId, isPinned])
   @@index([userId, sortOrder])
+  @@index([userId, stackId])
 }
 
 model TodoItem {
@@ -123,6 +131,24 @@ model TaskStep {
   @@index([noteId])
 }
 
+// ─── Stacks (note workspaces) ─────────────────────────────────────────────────
+
+model Stack {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  icon      String?  // Lucide icon name e.g. "Home", "Briefcase"
+  color     String?  // Hex color e.g. "#3b82f6"
+  sortOrder String   @default("")
+  notes     Note[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
 model Label {
@@ -131,7 +157,8 @@ model Label {
   userId    String
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  color     String?
+  color     String?     // Hex color e.g. "#4ade80"
+  icon      String?     // Lucide icon name e.g. "Star", "Home", "Briefcase"
   notes     NoteLabel[]
 
   @@unique([userId, name])
@@ -163,6 +190,22 @@ model Reminder {
   firedAt        DateTime?
 
   @@index([nextOccurrence])
+  @@index([noteId])
+}
+
+// ─── Note Sharing ─────────────────────────────────────────────────────────────
+
+model NoteShare {
+  id               String   @id @default(cuid())
+  createdAt        DateTime @default(now())
+  noteId           String
+  note             Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  sharedWithUserId String
+  sharedWithUser   User     @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade)
+  permission       String   @default("VIEW")   // "VIEW" | "EDIT"
+
+  @@unique([noteId, sharedWithUserId])
+  @@index([sharedWithUserId])
   @@index([noteId])
 }
 

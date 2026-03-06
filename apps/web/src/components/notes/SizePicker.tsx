@@ -1,30 +1,40 @@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Expand } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { NoteSize } from '@notes/shared'
 
-const SIZES: { value: NoteSize; label: string; icon: string }[] = [
+const SIZES: { value: string; label: string; icon: string }[] = [
   { value: 'SMALL', label: 'Small', icon: '▪' },
   { value: 'MEDIUM', label: 'Medium', icon: '▫' },
   { value: 'LARGE', label: 'Large', icon: '□' },
   { value: 'AUTO', label: 'Auto', icon: '⊡' },
 ]
 
-interface SizePickerProps {
-  value: NoteSize
-  onChange: (size: NoteSize) => void
+// Named sizes — custom px values show as "Custom"
+function resolveLabel(value: string): string {
+  return SIZES.find((s) => s.value === value)?.label ?? 'Custom'
 }
 
-export function SizePicker({ value, onChange }: SizePickerProps) {
+interface SizePickerProps {
+  value: string
+  onChange: (size: string) => void
+  compact?: boolean
+}
+
+export function SizePicker({ value, onChange, compact }: SizePickerProps) {
+  const isCustom = /^\d+$/.test(value)
+
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors" title="Change size">
-          <Expand className="h-4 w-4" />
+        <button
+          className={`${compact ? 'p-1' : 'p-1.5'} rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors`}
+          title={`Size: ${resolveLabel(value)} (drag bottom-right corner to resize freely)`}
+        >
+          <Expand className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} />
         </button>
       </PopoverTrigger>
       <PopoverContent className="w-auto p-3" align="start">
-        <p className="text-xs text-muted-foreground mb-2 font-medium">Size</p>
+        <p className="text-xs text-muted-foreground mb-2 font-medium">Preset size</p>
         <div className="flex gap-1">
           {SIZES.map((size) => (
             <button
@@ -43,6 +53,11 @@ export function SizePicker({ value, onChange }: SizePickerProps) {
             </button>
           ))}
         </div>
+        {isCustom && (
+          <p className="mt-2 text-[10px] text-muted-foreground/70">
+            Custom: {value}px — drag the corner to change
+          </p>
+        )}
       </PopoverContent>
     </Popover>
   )

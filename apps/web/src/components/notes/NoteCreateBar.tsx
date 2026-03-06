@@ -6,7 +6,11 @@ import { cn } from '@/lib/utils'
 import type { NoteType } from '@notes/shared'
 import { NoteEditor } from './NoteEditor'
 
-export function NoteCreateBar() {
+interface NoteCreateBarProps {
+  stackId?: string | null
+}
+
+export function NoteCreateBar({ stackId }: NoteCreateBarProps = {}) {
   const qc = useQueryClient()
   const [expanded, setExpanded] = useState(false)
   const [title, setTitle] = useState('')
@@ -22,7 +26,7 @@ export function NoteCreateBar() {
   })
 
   function handleTypeCreate(type: NoteType) {
-    createNote.mutate({ title, type })
+    createNote.mutate({ title, type, stackId: stackId ?? undefined })
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
