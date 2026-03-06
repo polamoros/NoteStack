@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.env
+*.env.local
+.DS_Store
+
+# Database
+data/*.db
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# Prisma
+apps/api/prisma/migrations/*.sql.tmp
+
+# Build outputs
+apps/web/dist/
+apps/api/dist/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker
+docker-compose.override.yml

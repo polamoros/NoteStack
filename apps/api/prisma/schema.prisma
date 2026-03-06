@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── better-auth managed tables ───────────────────────────────────────────────
+
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean
+  image         String?
+  createdAt     DateTime
+  updatedAt     DateTime
+  role          String?   @default("user")   // "user" | "admin"
+  banned        Boolean?
+  banReason     String?
+  banExpires    DateTime?
+  sessions      Session[]
+  accounts      Account[]
+
+  // App relations
+  notes         Note[]
+  labels        Label[]
+}
+
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  createdAt      DateTime
+  updatedAt      DateTime
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  impersonatedBy String?
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime
+  updatedAt             DateTime
+}
+
+model Verification {
+  id         String    @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime?
+  updatedAt  DateTime?
+}
+
+// ─── Notes ────────────────────────────────────────────────────────────────────
+
+model Note {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title     String   @default("")
+  type      String   @default("RICH")     // "RICH" | "TODO" | "TASK"
+  color     String   @default("DEFAULT")  // NoteColor enum values
+  size      String   @default("AUTO")     // "SMALL" | "MEDIUM" | "LARGE" | "AUTO"
+  status    String   @default("ACTIVE")   // "ACTIVE" | "ARCHIVED" | "TRASHED"
+  isPinned  Boolean  @default(false)
+  content   String?  // Tiptap JSON string for RICH type
+  sortOrder String   @default("")         // fractional-indexing string
+
+  trashedAt DateTime?
+
+  todoItems TodoItem[]
+  taskSteps TaskStep[]
+  labels    NoteLabel[]
+  reminders Reminder[]
+
+  @@index([userId, status])
+  @@index([userId, isPinned])
+  @@index([userId, sortOrder])
+}
+
+model TodoItem {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  text      String
+  isChecked Boolean  @default(false)
+  sortOrder String   @default("")
+
+  @@index([noteId])
+}
+
+model TaskStep {
+  id          String   @id @default(cuid())
+  createdAt   DateTime @default(now())
+  noteId      String
+  note        Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  isComplete  Boolean  @default(false)
+  sortOrder   String   @default("")
+
+  @@index([noteId])
+}
+
+// ─── Labels ───────────────────────────────────────────────────────────────────
+
+model Label {
+  id        String      @id @default(cuid())
+  createdAt DateTime    @default(now())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  color     String?
+  notes     NoteLabel[]
+
+  @@unique([userId, name])
+  @@index([userId])
+}
+
+model NoteLabel {
+  noteId  String
+  labelId String
+  note    Note   @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  label   Label  @relation(fields: [labelId], references: [id], onDelete: Cascade)
+
+  @@id([noteId, labelId])
+}
+
+// ─── Reminders ────────────────────────────────────────────────────────────────
+
+model Reminder {
+  id             String    @id @default(cuid())
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  noteId         String
+  note           Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  scheduledAt    DateTime           // DTSTART anchor
+  rrule          String?            // RFC 5545 RRULE string (null = one-shot)
+  nextOccurrence DateTime?          // cached computed value
+  isAcknowledged Boolean   @default(false)
+  firedAt        DateTime?
+
+  @@index([nextOccurrence])
+  @@index([noteId])
+}
+
+// ─── App Settings ─────────────────────────────────────────────────────────────
+
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+// ─── OIDC Providers (admin-configured) ────────────────────────────────────────
+
+model OidcProvider {
+  id           String   @id @default(cuid())
+  createdAt    DateTime @default(now())
+  name         String   @unique   // Display name e.g. "Google", "Authentik"
+  issuerUrl    String
+  clientId     String
+  clientSecret String
+  enabled      Boolean  @default(true)
+  // Scopes to request (space-separated, defaults to "openid email profile")
+  scopes       String   @default("openid email profile")
+}

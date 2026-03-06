@@ -1,0 +1,20 @@
+{
+  "name": "notes",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "concurrently --names \"api,web\" --prefix-colors \"cyan,magenta\" \"pnpm --filter @notes/api dev\" \"pnpm --filter @notes/web dev\"",
+    "build": "pnpm --filter @notes/shared build && pnpm --filter @notes/api build && pnpm --filter @notes/web build",
+    "typecheck": "pnpm -r exec tsc --noEmit",
+    "db:migrate": "pnpm --filter @notes/api exec prisma migrate dev",
+    "db:migrate:deploy": "pnpm --filter @notes/api exec prisma migrate deploy",
+    "db:studio": "pnpm --filter @notes/api exec prisma studio",
+    "db:generate": "pnpm --filter @notes/api exec prisma generate",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "typescript": "^5.7.3"
+  },
+  "packageManager": "pnpm@10.30.3+sha512.c961d1e0a2d8e354ecaa5166b822516668b7f44cb5bd95122d590dd81922f606f5473b6d23ec4a5be05e7fcd18e8488d47d978bbe981872f1145d06e9a740017"
+}

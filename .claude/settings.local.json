@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --version)",
+      "Bash(npm --version)",
+      "Bash(pnpm --version)",
+      "Bash(/usr/local/bin/node --version)",
+      "Bash(/opt/homebrew/bin/node --version)",
+      "Bash(pnpm install)",
+      "Bash(/opt/homebrew/bin/pnpm install)",
+      "Bash(export PATH=\"$HOME/.nvm/versions/node/v20.19.2/bin:$PATH\")",
+      "Bash(pnpm approve-builds)",
+      "Bash(pnpm approve-builds --all)",
+      "Bash(pnpm config set enable-pre-post-scripts true)"
+    ]
+  }
+}
