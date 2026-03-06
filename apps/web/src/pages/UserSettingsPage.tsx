@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useUIStore } from '@/store/ui.store'
 import { cn } from '@/lib/utils'
-import { Moon, Sun, Monitor, Grid2X2 } from 'lucide-react'
+import { Moon, Sun, Monitor, Grid2X2, Upload } from 'lucide-react'
 
 // ── Section card wrapper ────────────────────────────────────────────────────
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
@@ -37,6 +37,19 @@ export function UserSettingsPage() {
   const [profileMsg, setProfileMsg]   = useState('')
   const [profileErr, setProfileErr]   = useState('')
   const [profileSaving, setProfileSaving] = useState(false)
+  const avatarFileRef = useRef<HTMLInputElement>(null)
+
+  function handleAvatarFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const reader = new FileReader()
+    reader.onload = (evt) => {
+      const result = evt.target?.result as string
+      if (result) setImage(result)
+    }
+    reader.readAsDataURL(file)
+    e.target.value = ''
+  }
 
   // Password
   const [currentPw, setCurrentPw] = useState('')
@@ -110,20 +123,43 @@ export function UserSettingsPage() {
       {/* ── Profile ── */}
       <Section title="Profile">
         <form onSubmit={handleProfileSave} className="space-y-4">
-          {/* Avatar preview */}
+          {/* Avatar preview + upload */}
           <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-muted overflow-hidden border flex items-center justify-center shrink-0">
-              {image ? (
-                <img src={image} alt={name} className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-xl font-semibold text-muted-foreground">
-                  {(name || user?.email || '?').slice(0, 1).toUpperCase()}
-                </span>
-              )}
+            <div className="relative group shrink-0">
+              <div className="h-16 w-16 rounded-full bg-muted overflow-hidden border flex items-center justify-center">
+                {image ? (
+                  <img src={image} alt={name} className="h-full w-full object-cover" />
+                ) : (
+                  <span className="text-2xl font-semibold text-muted-foreground">
+                    {(name || user?.email || '?').slice(0, 1).toUpperCase()}
+                  </span>
+                )}
+              </div>
+              {/* Upload overlay on hover */}
+              <button
+                type="button"
+                onClick={() => avatarFileRef.current?.click()}
+                className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center"
+                title="Upload photo"
+              >
+                <Upload className="h-5 w-5 text-white" />
+              </button>
+              <input
+                ref={avatarFileRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFile}
+              />
             </div>
             <div className="flex-1 space-y-1">
               <p className="text-sm font-medium">{user?.email}</p>
-              <p className="text-xs text-muted-foreground">Your account email cannot be changed here</p>
+              <p className="text-xs text-muted-foreground">Hover avatar to upload a photo, or paste a URL below</p>
+              {image?.startsWith('data:') && (
+                <p className="text-xs text-amber-600 dark:text-amber-400">
+                  Image uploaded — click Save to apply
+                </p>
+              )}
             </div>
           </div>
 
@@ -138,15 +174,17 @@ export function UserSettingsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="image">Profile picture URL</Label>
+            <Label htmlFor="image">Profile picture URL (optional)</Label>
             <Input
               id="image"
-              type="url"
-              value={image}
+              type="text"
+              value={image?.startsWith('data:') ? '' : image}
               onChange={(e) => setImage(e.target.value)}
               placeholder="https://example.com/avatar.png"
             />
-            <p className="text-xs text-muted-foreground">Enter a URL to an image (HTTPS recommended)</p>
+            <p className="text-xs text-muted-foreground">
+              {image?.startsWith('data:') ? 'Using uploaded image — clear field to enter a URL instead' : 'Enter a URL or hover avatar to upload a file'}
+            </p>
           </div>
 
           {profileErr && <p className="text-sm text-destructive">{profileErr}</p>}

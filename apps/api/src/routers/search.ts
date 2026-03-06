@@ -32,12 +32,20 @@ export const searchRouter = router({
           taskSteps: { orderBy: { sortOrder: 'asc' } },
           labels: { include: { label: true } },
           reminders: true,
+          shares: { include: { sharedWithUser: { select: { id: true, name: true, image: true } } } },
         },
       })
 
       return fullNotes.map((note) => ({
         ...note,
         labels: note.labels.map((nl) => nl.label),
+        // Normalise sharedWith so NoteCard doesn't crash on note.sharedWith.length
+        sharedWith: note.shares.map((s) => ({
+          userId: s.sharedWithUserId ?? '',
+          name: s.sharedWithUser?.name ?? null,
+          image: s.sharedWithUser?.image ?? null,
+          permission: s.permission,
+        })),
         createdAt: note.createdAt.toISOString(),
         updatedAt: note.updatedAt.toISOString(),
         trashedAt: note.trashedAt?.toISOString() ?? null,

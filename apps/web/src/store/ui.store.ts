@@ -18,6 +18,7 @@ interface UIState {
   setEditorOpen: (open: boolean) => void
   toggleNoteSelection: (id: string) => void
   clearNoteSelection: () => void
+  selectAllNotes: (ids: string[]) => void
   setGridColumns: (cols: number) => void
 }
 
@@ -42,6 +43,7 @@ export const useUIStore = create<UIState>()(
             : [...s.selectedNoteIds, id],
         })),
       clearNoteSelection: () => set({ selectedNoteIds: [] }),
+      selectAllNotes: (ids) => set({ selectedNoteIds: ids }),
       setGridColumns: (gridColumns) => set({ gridColumns }),
     }),
     {

@@ -10,7 +10,7 @@ import {
 } from '@dnd-kit/core'
 import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { generateKeyBetween } from 'fractional-indexing'
 import { trpc } from '@/api/client'
 import { useQueryClient } from '@tanstack/react-query'
@@ -25,24 +25,35 @@ interface NoteGridProps {
   showPinnedSection?: boolean
 }
 
+/** Convert note size string → CSS grid column span.
+ *  "WxH" format: span = round(W / 220), min 1.
+ *  "LARGE" named size: span 2. All others: span 1.
+ */
+function getColSpan(size: string): number {
+  const wh = size.match(/^(\d+)x(\d+)$/)
+  if (wh) return Math.max(1, Math.round(parseInt(wh[1], 10) / 220))
+  if (size === 'LARGE') return 2
+  return 1
+}
+
 function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archived' | 'trashed' }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: note.id,
     disabled: view !== 'active',
   })
 
-  // 2-column span only for the named 'LARGE' — custom pixel heights stay single-column
-  const spanLarge = note.size === 'LARGE'
+  const colSpan = getColSpan(note.size)
 
   return (
     <div
       ref={setNodeRef}
-      className={cn('note-card-wrapper', spanLarge && 'note-card-large')}
+      className="note-card-wrapper"
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
-        // Hide the original when dragging — DragOverlay provides the visual
         opacity: isDragging ? 0 : 1,
+        // Span multiple columns for wide notes (WxH format or LARGE)
+        gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
       }}
       {...attributes}
       {...listeners}
@@ -114,8 +125,30 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
   const qc = useQueryClient()
   const { viewMode, gridColumns } = useUIStore()
   const editorOpen = useUIStore((s) => s.editorOpen)
+  const selectedNoteIds = useUIStore((s) => s.selectedNoteIds)
+  const clearNoteSelection = useUIStore((s) => s.clearNoteSelection)
+  const selectAllNotes = useUIStore((s) => s.selectAllNotes)
   const reorder = trpc.notes.reorder.useMutation()
   const [activeNote, setActiveNote] = useState<Note | null>(null)
+
+  // Ctrl/Cmd+A → select all visible notes; Escape → deselect
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Don't intercept when user is typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target as HTMLElement).isContentEditable) return
+
+      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+        e.preventDefault()
+        selectAllNotes(notes.map((n) => n.id))
+      }
+      if (e.key === 'Escape' && selectedNoteIds.length > 0) {
+        clearNoteSelection()
+      }
+    }
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [notes, selectedNoteIds.length, selectAllNotes, clearNoteSelection])
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),

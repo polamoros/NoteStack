@@ -212,10 +212,14 @@ export function Sidebar() {
           <span>Default</span>
         </NavLink>
 
-        {/* User-created stacks */}
-        {stacks?.map((stack) => (
-          <StackNavItem key={stack.id} stack={stack} onClick={handleNavClick} />
-        ))}
+        {/* User-created stacks — scrollable if many */}
+        {stacks && stacks.length > 0 && (
+          <div className="max-h-[200px] overflow-y-auto space-y-0.5 pr-0.5">
+            {stacks.map((stack) => (
+              <StackNavItem key={stack.id} stack={stack} onClick={handleNavClick} />
+            ))}
+          </div>
+        )}
 
         {/* Create stack form / button */}
         {creatingStack && (
@@ -249,24 +253,26 @@ export function Sidebar() {
             <div className="px-3 py-1 text-xs font-medium text-muted-foreground uppercase tracking-wider">
               Labels
             </div>
-            {labels.map((label) => (
-              <NavLink
-                key={label.id}
-                to={`/label/${label.id}`}
-                onClick={handleNavClick}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                    isActive
-                      ? 'bg-accent text-accent-foreground font-medium'
-                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                  )
-                }
-              >
-                <LabelIcon icon={label.icon} color={label.color} size={16} />
-                <span className="truncate">{label.name}</span>
-              </NavLink>
-            ))}
+            <div className="max-h-[180px] overflow-y-auto space-y-0.5 pr-0.5">
+              {labels.map((label) => (
+                <NavLink
+                  key={label.id}
+                  to={`/label/${label.id}`}
+                  onClick={handleNavClick}
+                  className={({ isActive }) =>
+                    cn(
+                      'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                      isActive
+                        ? 'bg-accent text-accent-foreground font-medium'
+                        : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                    )
+                  }
+                >
+                  <LabelIcon icon={label.icon} color={label.color} size={16} />
+                  <span className="truncate">{label.name}</span>
+                </NavLink>
+              ))}
+            </div>
           </>
         )}
 

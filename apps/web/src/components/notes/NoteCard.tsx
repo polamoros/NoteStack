@@ -44,7 +44,7 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
   const [editorOpen, setEditorOpen] = useState(false)
   const [hovered, setHovered] = useState(false)
   const [dragHeight, setDragHeight] = useState<number | null>(null)
-  const [dragWidth, setDragWidth] = useState<number | null>(null)
+  const [dragWidth,  setDragWidth]  = useState<number | null>(null) // tracked for save, not applied inline
   const [isResizing, setIsResizing] = useState(false)
   // Prevents the card click from firing immediately after a resize gesture ends
   const justResizedRef = useRef(false)
@@ -73,12 +73,13 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
   }, [editorOpen, setGlobalEditorOpen])
 
   // Resolve effective dimensions:
-  //   dragHeight/dragWidth → live values during resize
-  //   savedHeight/savedWidth → previously persisted pixel values
+  //   dragHeight → live height during resize (applied as minHeight inline style)
+  //   savedHeight → previously persisted pixel height
   //   null → fall back to named CSS size class
-  const { width: savedWidth, height: savedHeight } = parseSize(note.size)
+  // NOTE: width is intentionally NOT applied as inline style — it drives grid-column
+  //   span on the SortableNoteCard wrapper in NoteGrid.tsx instead.
+  const { height: savedHeight } = parseSize(note.size)
   const effectiveHeight = dragHeight ?? savedHeight
-  const effectiveWidth  = dragWidth  ?? savedWidth
 
   const nextReminder = note.reminders.find((r) => r.nextOccurrence && !r.isAcknowledged)
 
@@ -161,17 +162,17 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
           !isResizing && 'transition-shadow duration-150',
           'hover:shadow-md',
           colorClass,
-          // Apply named size class only when no pixel dimensions are set
-          effectiveHeight === null && effectiveWidth === null
-            && (NAMED_SIZE_CLASSES[note.size] ?? NAMED_SIZE_CLASSES.AUTO),
-          isSelected   && 'ring-2 ring-primary ring-offset-1',
+          // Apply named size class only when no pixel height is set
+          effectiveHeight === null && (NAMED_SIZE_CLASSES[note.size] ?? NAMED_SIZE_CLASSES.AUTO),
+          // HA-inspired: primary border glow + elevation instead of flat ring
+          isSelected && '!border-primary/60 shadow-[0_0_0_2px_hsl(var(--primary)/0.5),0_6px_24px_-4px_hsl(var(--primary)/0.2)] z-10',
           isResizing   && 'select-none z-50',
         )}
         style={{
           ...colorStyle,
           ...(effectiveHeight !== null ? { minHeight: `${effectiveHeight}px` } : {}),
-          // Setting explicit width lets the card overflow its grid column (free-form resize)
-          ...(effectiveWidth  !== null ? { width: `${effectiveWidth}px` } : {}),
+          // Width is controlled via grid-column span on the wrapper (NoteGrid.tsx).
+          // Setting inline width here would overflow the grid cell and cause overlaps.
         }}
         onClick={handleCardClick}
         onMouseEnter={() => setHovered(true)}
@@ -274,11 +275,10 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
         <div
           className={cn(
             'absolute bottom-0 left-0 right-0 rounded-b-lg pt-8 pb-1.5 px-1.5',
-            'bg-gradient-to-t from-black/30 dark:from-black/60 via-black/10 dark:via-black/25 to-transparent',
+            'bg-gradient-to-t from-black/15 dark:from-black/30 via-transparent to-transparent',
             'transition-opacity duration-100',
             hovered && !isSelectMode && !isResizing ? 'opacity-100' : 'opacity-0',
           )}
-          onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between">
             {/* Shared-with avatars — left side */}
@@ -369,6 +369,15 @@ function RichInline({ node }: { node: any }): React.ReactElement | null {
     if (mark.type === 'italic') el = <em>{el}</em>
     if (mark.type === 'code')   el = <code>{el}</code>
     if (mark.type === 'strike') el = <s>{el}</s>
+    if (mark.type === 'link')   el = (
+      <a
+        href={mark.attrs?.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={(e) => e.stopPropagation()}
+        className="text-primary underline underline-offset-2"
+      >{el}</a>
+    )
   }
   return el
 }
@@ -391,7 +400,6 @@ function RichNode({ node }: { node: any }): React.ReactElement | null {
         </p>
       )
     case 'bulletList':
-    case 'orderedList':
       return (
         <ul>
           {(node.content ?? []).map((item: any, i: number) => (
@@ -400,6 +408,16 @@ function RichNode({ node }: { node: any }): React.ReactElement | null {
             </li>
           ))}
         </ul>
+      )
+    case 'orderedList':
+      return (
+        <ol>
+          {(node.content ?? []).map((item: any, i: number) => (
+            <li key={i}>
+              {(item.content ?? []).map((c: any, j: number) => <RichNode key={j} node={c} />)}
+            </li>
+          ))}
+        </ol>
       )
     case 'taskList':
       return (
@@ -414,6 +432,24 @@ function RichNode({ node }: { node: any }): React.ReactElement | null {
       )
     case 'horizontalRule':
       return <hr />
+    case 'image':
+      return (
+        <div className="my-1">
+          <img
+            src={node.attrs?.src}
+            alt={node.attrs?.alt ?? ''}
+            className="max-w-full rounded"
+            style={{ maxHeight: '80px', objectFit: 'cover' }}
+          />
+        </div>
+      )
+    case 'audio':
+      return (
+        <div className="flex items-center gap-1 text-xs text-muted-foreground/60 py-0.5">
+          <span>🎤</span>
+          <span>Voice memo</span>
+        </div>
+      )
     default:
       return null
   }

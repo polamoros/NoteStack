@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { router, adminProcedure } from '../../trpc/trpc.js'
+import { auth } from '../../auth/auth.js'
 
 export const adminUsersRouter = router({
   list: adminProcedure
@@ -79,6 +80,47 @@ export const adminUsersRouter = router({
       }
       await ctx.db.user.delete({ where: { id: input.userId } })
       return { id: input.userId }
+    }),
+
+  updateUser: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+      name: z.string().min(1).optional(),
+      email: z.string().email().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const { userId, ...data } = input
+      // Build headers from the incoming request so better-auth can validate admin session
+      const headers = new Headers()
+      const cookie = (ctx.req.headers as Record<string, string>).cookie
+      if (cookie) headers.set('cookie', cookie)
+      const authorization = (ctx.req.headers as Record<string, string>).authorization
+      if (authorization) headers.set('authorization', authorization)
+
+      const result = await auth.api.adminUpdateUser({
+        body: { userId, data },
+        headers,
+      })
+      return result
+    }),
+
+  setUserPassword: adminProcedure
+    .input(z.object({
+      userId: z.string(),
+      newPassword: z.string().min(8),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const headers = new Headers()
+      const cookie = (ctx.req.headers as Record<string, string>).cookie
+      if (cookie) headers.set('cookie', cookie)
+      const authorization = (ctx.req.headers as Record<string, string>).authorization
+      if (authorization) headers.set('authorization', authorization)
+
+      await auth.api.setUserPassword({
+        body: { userId: input.userId, newPassword: input.newPassword },
+        headers,
+      })
+      return { success: true }
     }),
 
   stats: adminProcedure.query(async ({ ctx }) => {

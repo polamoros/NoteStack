@@ -9,21 +9,32 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
   Code, Minus, ImagePlus, Link2, HelpCircle, FileCode2, X, Mic, Square,
+  ChevronDown,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { JSONContent } from '@tiptap/react'
 
-// ── Image node view with resize presets ───────────────────────────────────────
+// ── Image node view with hover controls (resize + alignment) ──────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function ImageView({ node, updateAttributes, selected }: any) {
-  const { src, alt, width } = node.attrs as { src: string; alt: string | null; width: string | null }
-  const presets = ['25%', '50%', '75%', '100%']
+function ImageView({ node, updateAttributes }: any) {
+  const { src, alt, width, align } = node.attrs as {
+    src: string; alt: string | null; width: string | null; align: string | null
+  }
+  const [showControls, setShowControls] = useState(false)
+
+  const alignStyle: React.CSSProperties =
+    align === 'left'   ? { marginRight: 'auto', marginLeft: 0 } :
+    align === 'right'  ? { marginLeft: 'auto', marginRight: 0 } :
+    align === 'center' ? { marginLeft: 'auto', marginRight: 'auto' } :
+    {}
 
   return (
     <NodeViewWrapper>
       <div
-        className="relative my-2 block"
-        style={{ width: width ?? '100%', maxWidth: '100%' }}
+        className="my-2 block"
+        style={{ width: width ?? '100%', maxWidth: '100%', ...alignStyle }}
+        onMouseEnter={() => setShowControls(true)}
+        onMouseLeave={() => setShowControls(false)}
       >
         <img
           src={src}
@@ -32,21 +43,44 @@ function ImageView({ node, updateAttributes, selected }: any) {
           className="rounded-lg block max-w-full"
           style={{ width: '100%' }}
         />
-        {selected && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1 bg-black/75 rounded-full px-2 py-1">
-            {presets.map((w) => (
-              <button
-                key={w}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); updateAttributes({ width: w }) }}
-                className={cn(
-                  'text-[11px] px-2 py-0.5 rounded-full text-white transition-colors',
-                  width === w ? 'bg-white/40' : 'hover:bg-white/20',
-                )}
-              >
-                {w}
-              </button>
-            ))}
+        {/* Controls bar — shown on hover, displayed below the image (no overflow clipping issue) */}
+        {showControls && (
+          <div className="flex items-center justify-center gap-1 mt-1 flex-wrap">
+            <div className="flex gap-0.5 bg-black/75 rounded-full px-2 py-1">
+              {['25%', '50%', '75%', '100%'].map((w) => (
+                <button
+                  key={w}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); updateAttributes({ width: w }) }}
+                  className={cn(
+                    'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
+                    width === w ? 'bg-white/35' : 'hover:bg-white/20',
+                  )}
+                >
+                  {w}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-0.5 bg-black/75 rounded-full px-2 py-1">
+              {[
+                { key: 'left',   label: '⇤' },
+                { key: 'center', label: '↔' },
+                { key: 'right',  label: '⇥' },
+              ].map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  onMouseDown={(e) => { e.preventDefault(); updateAttributes({ align: key }) }}
+                  className={cn(
+                    'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
+                    align === key ? 'bg-white/35' : 'hover:bg-white/20',
+                  )}
+                  title={`Align ${key}`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
@@ -79,6 +113,7 @@ const ImageNode = Node.create({
       alt:   { default: null },
       title: { default: null },
       width: { default: null },
+      align: { default: null }, // 'left' | 'center' | 'right' | null
     }
   },
 
@@ -259,6 +294,9 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
   const [mdMode, setMdMode] = useState(false)
   const [mdText, setMdText] = useState('')
 
+  // Toolbar expand
+  const [toolbarExpanded, setToolbarExpanded] = useState(false)
+
   // Voice recording
   const [recording,   setRecording]   = useState(false)
   const [recSeconds,  setRecSeconds]  = useState(0)
@@ -305,7 +343,11 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
   // ── Image (file) ──────────────────────────────────────────────────────────
   function insertImage(src: string) {
     if (!editor || !src) return
-    editor.chain().focus().insertContent({ type: 'image', attrs: { src } }).run()
+    // Insert image + empty paragraph so cursor is always placeable after
+    editor.chain().focus().insertContent([
+      { type: 'image', attrs: { src } },
+      { type: 'paragraph' },
+    ]).run()
   }
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -376,7 +418,11 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
         reader.onload = (evt) => {
           const src = evt.target?.result as string
           if (src && editor) {
-            editor.chain().focus().insertContent({ type: 'audio', attrs: { src } }).run()
+            // Insert audio + empty paragraph so cursor is always placeable after
+            editor.chain().focus().insertContent([
+              { type: 'audio', attrs: { src } },
+              { type: 'paragraph' },
+            ]).run()
           }
         }
         reader.readAsDataURL(blob)
@@ -405,161 +451,185 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
   return (
     <div className={cn('space-y-2', className)}>
       {/* ── Formatting toolbar ─────────────────────────────────────────── */}
-      <div className="flex items-center gap-0.5 border-b pb-2 flex-wrap">
+      <div className="border-b pb-2 space-y-0.5">
 
-        <ToolbarButton
-          active={editor.isActive('bold')}
-          onClick={() => editor.chain().focus().toggleBold().run()}
-          title="Bold (Ctrl+B)"
-        >
-          <Bold className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('italic')}
-          onClick={() => editor.chain().focus().toggleItalic().run()}
-          title="Italic (Ctrl+I)"
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('heading', { level: 2 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-          title="Heading 2 (## )"
-        >
-          <Heading2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('heading', { level: 3 })}
-          onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
-          title="Heading 3 (### )"
-        >
-          <Heading3 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('bulletList')}
-          onClick={() => editor.chain().focus().toggleBulletList().run()}
-          title="Bullet list (- )"
-        >
-          <List className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('orderedList')}
-          onClick={() => editor.chain().focus().toggleOrderedList().run()}
-          title="Ordered list (1. )"
-        >
-          <ListOrdered className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('blockquote')}
-          onClick={() => editor.chain().focus().toggleBlockquote().run()}
-          title="Blockquote (> )"
-        >
-          {/* Custom double-quote icon */}
-          <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M3 4h2L3 8h2L3 12H1L3 8H1L3 4zm6 0h2L9 8h2L9 12H7L9 8H7L9 4z"/>
-          </svg>
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={editor.isActive('codeBlock')}
-          onClick={() => editor.chain().focus().toggleCodeBlock().run()}
-          title="Code block (``` )"
-        >
-          <Code className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        <ToolbarButton
-          active={false}
-          onClick={() => editor.chain().focus().setHorizontalRule().run()}
-          title="Divider (---)"
-        >
-          <Minus className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        {/* Image: pick file */}
-        <ToolbarButton
-          active={false}
-          onClick={() => fileInputRef.current?.click()}
-          title="Insert image from file"
-        >
-          <ImagePlus className="h-3.5 w-3.5" />
-        </ToolbarButton>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-
-        {/* Hyperlink */}
-        <ToolbarButton
-          active={editor.isActive('link') || linkMode}
-          onClick={handleLinkToggle}
-          title={editor.isActive('link') ? 'Remove link' : 'Insert link'}
-        >
-          <Link2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
-
-        {/* Voice memo */}
-        {recording ? (
-          <button
-            type="button"
-            onClick={stopRecording}
-            title="Stop recording"
-            className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+        {/* Primary row — always visible */}
+        <div className="flex items-center gap-0.5">
+          <ToolbarButton
+            active={editor.isActive('bold')}
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            title="Bold (Ctrl+B)"
           >
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
-            </span>
-            {formatTime(recSeconds)}
-            <Square className="h-3 w-3 ml-0.5" />
-          </button>
-        ) : (
+            <Bold className="h-3.5 w-3.5" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={editor.isActive('italic')}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            title="Italic (Ctrl+I)"
+          >
+            <Italic className="h-3.5 w-3.5" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={editor.isActive('heading', { level: 2 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            title="Heading 2 (## )"
+          >
+            <Heading2 className="h-3.5 w-3.5" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={editor.isActive('heading', { level: 3 })}
+            onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}
+            title="Heading 3 (### )"
+          >
+            <Heading3 className="h-3.5 w-3.5" />
+          </ToolbarButton>
+
+          <ToolbarButton
+            active={editor.isActive('codeBlock')}
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            title="Code block (``` )"
+          >
+            <Code className="h-3.5 w-3.5" />
+          </ToolbarButton>
+
           <ToolbarButton
             active={false}
-            onClick={startRecording}
-            title="Record voice memo"
+            onClick={() => editor.chain().focus().setHorizontalRule().run()}
+            title="Divider (---)"
           >
-            <Mic className="h-3.5 w-3.5" />
+            <Minus className="h-3.5 w-3.5" />
           </ToolbarButton>
-        )}
 
-        {/* ── Spacer → push these to the right ── */}
-        <div className="flex-1" />
+          {/* Image: pick file */}
+          <ToolbarButton
+            active={false}
+            onClick={() => fileInputRef.current?.click()}
+            title="Insert image from file"
+          >
+            <ImagePlus className="h-3.5 w-3.5" />
+          </ToolbarButton>
 
-        {/* Paste markdown */}
-        <ToolbarButton
-          active={mdMode}
-          onClick={() => mdMode ? setMdMode(false) : enterMdMode()}
-          title="Paste raw markdown"
-        >
-          <FileCode2 className="h-3.5 w-3.5" />
-        </ToolbarButton>
+          {/* Hyperlink */}
+          <ToolbarButton
+            active={editor.isActive('link') || linkMode}
+            onClick={handleLinkToggle}
+            title={editor.isActive('link') ? 'Remove link' : 'Insert link'}
+          >
+            <Link2 className="h-3.5 w-3.5" />
+          </ToolbarButton>
 
-        {/* Markdown help — fixed-position dropdown */}
-        <button
-          ref={helpBtnRef}
-          onClick={handleHelpToggle}
-          type="button"
-          title="Markdown shortcuts"
-          className={cn(
-            'p-1.5 rounded text-sm transition-colors',
-            showHelp
-              ? 'bg-accent text-accent-foreground'
-              : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+          {/* Voice memo / recording indicator */}
+          {recording ? (
+            <button
+              type="button"
+              onClick={stopRecording}
+              title="Stop recording"
+              className="flex items-center gap-1.5 px-2 py-1 rounded text-xs bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors"
+            >
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500" />
+              </span>
+              {formatTime(recSeconds)}
+              <Square className="h-3 w-3 ml-0.5" />
+            </button>
+          ) : (
+            <ToolbarButton
+              active={false}
+              onClick={startRecording}
+              title="Record voice memo"
+            >
+              <Mic className="h-3.5 w-3.5" />
+            </ToolbarButton>
           )}
-        >
-          <HelpCircle className="h-3.5 w-3.5" />
-        </button>
+
+          {/* Expand toggle — last button on left side, before spacer */}
+          <button
+            type="button"
+            onClick={() => setToolbarExpanded((v) => !v)}
+            title={toolbarExpanded ? 'Hide extra options' : 'More formatting options'}
+            className={cn(
+              'p-1.5 rounded text-sm transition-colors',
+              toolbarExpanded
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+            )}
+          >
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform duration-150', toolbarExpanded && 'rotate-180')} />
+          </button>
+
+          {/* ── Spacer → push right-side buttons ── */}
+          <div className="flex-1" />
+
+          {/* Paste markdown */}
+          <ToolbarButton
+            active={mdMode}
+            onClick={() => mdMode ? setMdMode(false) : enterMdMode()}
+            title="Paste raw markdown"
+          >
+            <FileCode2 className="h-3.5 w-3.5" />
+          </ToolbarButton>
+
+          {/* Markdown help — fixed-position dropdown */}
+          <button
+            ref={helpBtnRef}
+            onClick={handleHelpToggle}
+            type="button"
+            title="Markdown shortcuts"
+            className={cn(
+              'p-1.5 rounded text-sm transition-colors',
+              showHelp
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+            )}
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+        </div>
+
+        {/* Secondary row — expandable (lists + blockquote) */}
+        {toolbarExpanded && (
+          <div className="flex items-center gap-0.5 pt-0.5">
+            <ToolbarButton
+              active={editor.isActive('bulletList')}
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              title="Bullet list (- )"
+            >
+              <List className="h-3.5 w-3.5" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor.isActive('orderedList')}
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              title="Ordered list (1. )"
+            >
+              <ListOrdered className="h-3.5 w-3.5" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor.isActive('blockquote')}
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              title="Blockquote (> )"
+            >
+              <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M3 4h2L3 8h2L3 12H1L3 8H1L3 4zm6 0h2L9 8h2L9 12H7L9 8H7L9 4z"/>
+              </svg>
+            </ToolbarButton>
+          </div>
+        )}
       </div>
+
+      {/* Hidden file input for image upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
       {/* ── Link input ────────────────────────────────────────────────── */}
       {linkMode && (
