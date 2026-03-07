@@ -19,8 +19,9 @@ export function RemindersPage() {
   const acknowledged = reminders.filter((r) => r.isAcknowledged)
 
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-6">
+    <div className="p-6 space-y-6">
       <h1 className="text-xl font-semibold">Reminders</h1>
+      <div className="max-w-2xl space-y-6">
 
       {isLoading && (
         <div className="space-y-3">
@@ -110,6 +111,7 @@ export function RemindersPage() {
           </div>
         </section>
       )}
+      </div>
     </div>
   )
 }

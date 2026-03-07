@@ -253,7 +253,7 @@ function NoteRichPreview({ content }: { content: string }) {
     const nodes = (doc.content ?? []) as any[]
     if (!nodes.length) return null
     return (
-      <div className="note-rich-preview text-sm text-muted-foreground line-clamp-[8]">
+      <div className="note-rich-preview text-sm text-muted-foreground overflow-hidden">
         {nodes.map((node: any, i: number) => (
           <RichNode key={i} node={node} />
         ))}

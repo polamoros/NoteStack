@@ -217,9 +217,14 @@
 /* Divider / horizontal rule */
 .tiptap hr {
   border: none;
-  border-top: 2px solid hsl(var(--border));
-  margin: 0.75rem 0;
-  opacity: 0.8;
+  border-top: 1px solid hsl(var(--border) / 0.8);
+  margin: 0.9rem 0;
+  cursor: default;
+}
+.tiptap hr.ProseMirror-selectednode {
+  outline: none;
+  border-top-color: hsl(var(--primary) / 0.5);
+  border-top-width: 2px;
 }
 
 /* Strikethrough */
@@ -235,22 +240,23 @@
 .note-rich-preview ol { list-style: decimal; padding-left: 1.1rem; margin-bottom: 0.2rem; }
 .note-rich-preview li { margin-bottom: 0.05rem; }
 .note-rich-preview pre {
-  font-family: 'Cascadia Code', 'Fira Code', monospace;
+  font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Menlo', Consolas, monospace;
   font-size: 0.75em;
+  line-height: 1.55;
   /* Transparent overlay so code block inherits and darkens the note's own color */
-  background: rgba(0, 0, 0, 0.07);
-  border: 1px solid rgba(0, 0, 0, 0.10);
-  border-left: 2px solid rgba(0, 0, 0, 0.20);
-  border-radius: 0.2rem;
-  padding: 0.2rem 0.4rem;
-  margin: 0.2rem 0;
+  background: rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-left: 2px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0.25rem;
+  padding: 0.3rem 0.5rem;
+  margin: 0.25rem 0;
   overflow: hidden;
   white-space: pre-wrap;
 }
 .dark .note-rich-preview pre {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.10);
-  border-left-color: rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.08);
+  border-left-color: rgba(255, 255, 255, 0.20);
 }
 .note-rich-preview code {
   font-family: 'Cascadia Code', 'Fira Code', monospace;
@@ -263,7 +269,11 @@
   background: rgba(255, 255, 255, 0.08);
   color: inherit;
 }
-.note-rich-preview hr { border-color: hsl(var(--border)); margin: 0.25rem 0; }
+.note-rich-preview hr {
+  border: none;
+  border-top: 1px solid hsl(var(--border) / 0.7);
+  margin: 0.4rem 0;
+}
 
 /* Images embedded in the rich editor */
 .tiptap img,

@@ -8,7 +8,7 @@ import {
   useSensors,
   closestCenter,
 } from '@dnd-kit/core'
-import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect, useRef } from 'react'
 import { generateKeyBetween } from 'fractional-indexing'
@@ -365,7 +365,7 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={notes.map((n) => n.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={notes.map((n) => n.id)} strategy={rectSortingStrategy}>
         {inner}
       </SortableContext>
       <DragOverlay dropAnimation={null}>

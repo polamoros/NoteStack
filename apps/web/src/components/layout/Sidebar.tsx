@@ -149,7 +149,7 @@ function StackNameForm({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Escape') onCancel() }}
-          className="flex-1 text-sm py-1 bg-transparent border-b border-input focus:outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/50"
+          className="flex-1 min-w-0 text-sm px-2 py-1 bg-background/60 rounded-md border border-input focus:outline-none focus:ring-1 focus:ring-ring transition-colors placeholder:text-muted-foreground/50"
           placeholder="Stack name…"
         />
 

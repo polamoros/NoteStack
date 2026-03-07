@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
   Code, Minus, ImagePlus, Link2, HelpCircle, FileCode2, Mic, Square,
@@ -15,23 +16,45 @@ import { cn } from '@/lib/utils'
 import type { JSONContent, Editor } from '@tiptap/react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
-// ── Image node view with hover controls (resize + alignment) ──────────────────
+// ── Image node view with hover controls (resize + alignment) via portal ───────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function ImageView({ node, updateAttributes, selected }: any) {
   const { src, alt, width, align } = node.attrs as {
     src: string; alt: string | null; width: string | null; align: string | null
   }
   const [hovered, setHovered] = useState(false)
+  const [imgRect, setImgRect] = useState<DOMRect | null>(null)
+  const wrapperRef = useRef<HTMLDivElement>(null)
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const showControls = hovered || selected
+
+  // Use a ref so the scroll handler always has the latest callback
+  const refreshRectRef = useRef<() => void>(() => {})
+  refreshRectRef.current = () => {
+    if (wrapperRef.current) setImgRect(wrapperRef.current.getBoundingClientRect())
+  }
 
   function handleMouseEnter() {
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
     setHovered(true)
+    refreshRectRef.current()
   }
   function handleMouseLeave() {
-    hideTimerRef.current = setTimeout(() => setHovered(false), 150)
+    hideTimerRef.current = setTimeout(() => setHovered(false), 200)
   }
+
+  // Keep the portal controls in sync with image position on scroll / resize
+  useEffect(() => {
+    if (!showControls) { setImgRect(null); return }
+    refreshRectRef.current()
+    const handler = () => refreshRectRef.current()
+    window.addEventListener('scroll', handler, { passive: true, capture: true })
+    window.addEventListener('resize', handler, { passive: true })
+    return () => {
+      window.removeEventListener('scroll', handler, true)
+      window.removeEventListener('resize', handler)
+    }
+  }, [showControls])
 
   const alignStyle: React.CSSProperties =
     align === 'left'   ? { marginRight: 'auto', marginLeft: 0 } :
@@ -39,11 +62,65 @@ function ImageView({ node, updateAttributes, selected }: any) {
     align === 'center' ? { marginLeft: 'auto', marginRight: 'auto' } :
     {}
 
+  // Portal: render controls fixed above the image bottom — escapes any overflow:hidden container
+  const controlsPortal = (showControls && imgRect) ? createPortal(
+    <div
+      className="flex items-center gap-1 pointer-events-auto"
+      style={{
+        position: 'fixed',
+        top: `${Math.max(8, imgRect.bottom - 50)}px`,
+        left: `${imgRect.left + imgRect.width / 2}px`,
+        transform: 'translateX(-50%)',
+        zIndex: 9999,
+        whiteSpace: 'nowrap',
+      }}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
+      <div className="flex gap-0.5 bg-black/75 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
+        {['25%', '50%', '75%', '100%'].map((w) => (
+          <button
+            key={w}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); updateAttributes({ width: w }) }}
+            className={cn(
+              'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
+              width === w ? 'bg-white/35' : 'hover:bg-white/20',
+            )}
+          >
+            {w}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-0.5 bg-black/75 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
+        {[
+          { key: 'left',   label: '⇤' },
+          { key: 'center', label: '↔' },
+          { key: 'right',  label: '⇥' },
+        ].map(({ key, label }) => (
+          <button
+            key={key}
+            type="button"
+            onMouseDown={(e) => { e.preventDefault(); updateAttributes({ align: key }) }}
+            className={cn(
+              'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
+              align === key ? 'bg-white/35' : 'hover:bg-white/20',
+            )}
+            title={`Align ${key}`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>,
+    document.body,
+  ) : null
+
   return (
     <NodeViewWrapper>
-      {/* Controls float as absolute overlay at the bottom of the image */}
       <div
-        className="relative my-2"
+        ref={wrapperRef}
+        className="my-2"
         style={{ width: width ?? '100%', maxWidth: '100%', ...alignStyle }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -59,48 +136,8 @@ function ImageView({ node, updateAttributes, selected }: any) {
               : 'hover:ring-1 hover:ring-primary/30',
           )}
         />
-        {/* Controls: absolute, centred, floats on top of the image */}
-        <div className={cn(
-          'absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 transition-opacity z-10 whitespace-nowrap',
-          !showControls && 'opacity-0 pointer-events-none',
-        )}>
-          <div className="flex gap-0.5 bg-black/75 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
-            {['25%', '50%', '75%', '100%'].map((w) => (
-              <button
-                key={w}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); updateAttributes({ width: w }) }}
-                className={cn(
-                  'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
-                  width === w ? 'bg-white/35' : 'hover:bg-white/20',
-                )}
-              >
-                {w}
-              </button>
-            ))}
-          </div>
-          <div className="flex gap-0.5 bg-black/75 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
-            {[
-              { key: 'left',   label: '⇤' },
-              { key: 'center', label: '↔' },
-              { key: 'right',  label: '⇥' },
-            ].map(({ key, label }) => (
-              <button
-                key={key}
-                type="button"
-                onMouseDown={(e) => { e.preventDefault(); updateAttributes({ align: key }) }}
-                className={cn(
-                  'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
-                  align === key ? 'bg-white/35' : 'hover:bg-white/20',
-                )}
-                title={`Align ${key}`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
       </div>
+      {controlsPortal}
     </NodeViewWrapper>
   )
 }
@@ -164,16 +201,18 @@ const AudioNode = Node.create({
 
 // ── Markdown shortcuts — label, example, and click-to-insert command ──────────
 const MD_SHORTCUTS: { md: string; label: string; run: (e: Editor) => void }[] = [
-  { md: '**text**', label: 'Bold',         run: (e) => e.chain().focus().toggleBold().run() },
-  { md: '*text*',   label: 'Italic',       run: (e) => e.chain().focus().toggleItalic().run() },
-  { md: '`code`',   label: 'Inline code',  run: (e) => e.chain().focus().toggleCode().run() },
-  { md: '## ',      label: 'Heading 2',    run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
-  { md: '### ',     label: 'Heading 3',    run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run() },
-  { md: '- item',   label: 'Bullet list',  run: (e) => e.chain().focus().toggleBulletList().run() },
-  { md: '1. item',  label: 'Ordered list', run: (e) => e.chain().focus().toggleOrderedList().run() },
-  { md: '> quote',  label: 'Blockquote',   run: (e) => e.chain().focus().toggleBlockquote().run() },
-  { md: '``` ',     label: 'Code block',   run: (e) => e.chain().focus().toggleCodeBlock().run() },
-  { md: '---',      label: 'Divider',      run: (e) => e.chain().focus().setHorizontalRule().run() },
+  { md: '**text**',  label: 'Bold',         run: (e) => e.chain().focus().toggleBold().run() },
+  { md: '*text*',    label: 'Italic',       run: (e) => e.chain().focus().toggleItalic().run() },
+  { md: '~~text~~',  label: 'Strikethrough',run: (e) => e.chain().focus().toggleStrike().run() },
+  { md: '`code`',    label: 'Inline code',  run: (e) => e.chain().focus().toggleCode().run() },
+  { md: '# ',        label: 'Heading 1',    run: (e) => e.chain().focus().toggleHeading({ level: 1 }).run() },
+  { md: '## ',       label: 'Heading 2',    run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
+  { md: '### ',      label: 'Heading 3',    run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run() },
+  { md: '- item',    label: 'Bullet list',  run: (e) => e.chain().focus().toggleBulletList().run() },
+  { md: '1. item',   label: 'Ordered list', run: (e) => e.chain().focus().toggleOrderedList().run() },
+  { md: '> quote',   label: 'Blockquote',   run: (e) => e.chain().focus().toggleBlockquote().run() },
+  { md: '``` ',      label: 'Code block',   run: (e) => e.chain().focus().toggleCodeBlock().run() },
+  { md: '---',       label: 'Divider',      run: (e) => e.chain().focus().setHorizontalRule().run() },
 ]
 
 // ── Minimal markdown → Tiptap JSON converter ─────────────────────────────────
