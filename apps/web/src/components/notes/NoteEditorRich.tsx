@@ -6,14 +6,14 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
 import { useEffect, useRef, useState } from 'react'
-import { createPortal } from 'react-dom'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
-  Code, Minus, ImagePlus, Link2, HelpCircle, FileCode2, X, Mic, Square,
+  Code, Minus, ImagePlus, Link2, HelpCircle, FileCode2, Mic, Square,
   ChevronDown, Strikethrough, Quote,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { JSONContent } from '@tiptap/react'
+import type { JSONContent, Editor } from '@tiptap/react'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 
 // ── Image node view with hover controls (resize + alignment) ──────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -41,9 +41,9 @@ function ImageView({ node, updateAttributes, selected }: any) {
 
   return (
     <NodeViewWrapper>
-      {/* Controls below image (not absolute) to avoid overflow:hidden clipping */}
+      {/* Controls float as absolute overlay at the bottom of the image */}
       <div
-        className="my-2"
+        className="relative my-2"
         style={{ width: width ?? '100%', maxWidth: '100%', ...alignStyle }}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -59,9 +59,12 @@ function ImageView({ node, updateAttributes, selected }: any) {
               : 'hover:ring-1 hover:ring-primary/30',
           )}
         />
-        {/* Controls always in DOM below image; invisible when not hovered to avoid layout shifts */}
-        <div className={cn('flex items-center gap-1 mt-1 transition-opacity', !showControls && 'opacity-0 pointer-events-none')}>
-          <div className="flex gap-0.5 bg-black/80 rounded-full px-2 py-1 shadow-lg">
+        {/* Controls: absolute, centred, floats on top of the image */}
+        <div className={cn(
+          'absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 transition-opacity z-10 whitespace-nowrap',
+          !showControls && 'opacity-0 pointer-events-none',
+        )}>
+          <div className="flex gap-0.5 bg-black/75 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
             {['25%', '50%', '75%', '100%'].map((w) => (
               <button
                 key={w}
@@ -76,7 +79,7 @@ function ImageView({ node, updateAttributes, selected }: any) {
               </button>
             ))}
           </div>
-          <div className="flex gap-0.5 bg-black/80 rounded-full px-2 py-1 shadow-lg">
+          <div className="flex gap-0.5 bg-black/75 backdrop-blur-sm rounded-full px-2 py-1 shadow-lg">
             {[
               { key: 'left',   label: '⇤' },
               { key: 'center', label: '↔' },
@@ -159,18 +162,18 @@ const AudioNode = Node.create({
   addNodeView() { return ReactNodeViewRenderer(AudioView) },
 })
 
-// ── Markdown shortcuts reference ──────────────────────────────────────────────
-const MD_SHORTCUTS = [
-  { md: '**text**', label: 'Bold' },
-  { md: '*text*',   label: 'Italic' },
-  { md: '`code`',   label: 'Inline code' },
-  { md: '## ',      label: 'Heading 2' },
-  { md: '### ',     label: 'Heading 3' },
-  { md: '- item',   label: 'Bullet list' },
-  { md: '1. item',  label: 'Ordered list' },
-  { md: '> quote',  label: 'Blockquote' },
-  { md: '``` ',     label: 'Code block' },
-  { md: '---',      label: 'Divider' },
+// ── Markdown shortcuts — label, example, and click-to-insert command ──────────
+const MD_SHORTCUTS: { md: string; label: string; run: (e: Editor) => void }[] = [
+  { md: '**text**', label: 'Bold',         run: (e) => e.chain().focus().toggleBold().run() },
+  { md: '*text*',   label: 'Italic',       run: (e) => e.chain().focus().toggleItalic().run() },
+  { md: '`code`',   label: 'Inline code',  run: (e) => e.chain().focus().toggleCode().run() },
+  { md: '## ',      label: 'Heading 2',    run: (e) => e.chain().focus().toggleHeading({ level: 2 }).run() },
+  { md: '### ',     label: 'Heading 3',    run: (e) => e.chain().focus().toggleHeading({ level: 3 }).run() },
+  { md: '- item',   label: 'Bullet list',  run: (e) => e.chain().focus().toggleBulletList().run() },
+  { md: '1. item',  label: 'Ordered list', run: (e) => e.chain().focus().toggleOrderedList().run() },
+  { md: '> quote',  label: 'Blockquote',   run: (e) => e.chain().focus().toggleBlockquote().run() },
+  { md: '``` ',     label: 'Code block',   run: (e) => e.chain().focus().toggleCodeBlock().run() },
+  { md: '---',      label: 'Divider',      run: (e) => e.chain().focus().setHorizontalRule().run() },
 ]
 
 // ── Minimal markdown → Tiptap JSON converter ─────────────────────────────────
@@ -303,15 +306,10 @@ interface NoteEditorRichProps {
 
 export function NoteEditorRich({ content, onChange, className }: NoteEditorRichProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const helpBtnRef = useRef<HTMLButtonElement>(null)
 
   // Hyperlink
   const [linkMode,  setLinkMode]  = useState(false)
   const [linkValue, setLinkValue] = useState('')
-
-  // Help dropdown
-  const [showHelp, setShowHelp] = useState(false)
-  const [helpPos, setHelpPos] = useState({ top: 0, right: 0 })
 
   // Secondary toolbar row
   const [toolbarExpanded, setToolbarExpanded] = useState(false)
@@ -423,15 +421,6 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
     onChange(JSON.stringify(editor.getJSON()))
     setMdMode(false)
     setMdText('')
-  }
-
-  // ── Help dropdown ─────────────────────────────────────────────────────────
-  function handleHelpToggle() {
-    if (!showHelp && helpBtnRef.current) {
-      const rect = helpBtnRef.current.getBoundingClientRect()
-      setHelpPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
-    }
-    setShowHelp((v) => !v)
   }
 
   // ── Voice recording ───────────────────────────────────────────────────────
@@ -601,57 +590,39 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             <FileCode2 className="h-3.5 w-3.5" />
           </ToolbarButton>
 
-          {/* Markdown help — fixed-position dropdown (safe inside dialogs with CSS transforms) */}
-          <button
-            ref={helpBtnRef}
-            onClick={handleHelpToggle}
-            type="button"
-            title="Markdown shortcuts"
-            className={cn(
-              'p-1.5 rounded text-sm transition-colors',
-              showHelp
-                ? 'bg-black/[0.12] dark:bg-white/[0.15] text-foreground'
-                : 'text-muted-foreground hover:bg-black/[0.07] dark:hover:bg-white/[0.08] hover:text-foreground',
-            )}
-          >
-            <HelpCircle className="h-3.5 w-3.5" />
-          </button>
-
-          {showHelp && createPortal(
-            <>
-              {/* Click-outside backdrop — rendered in body to escape dialog's CSS transform */}
-              <div
-                className="fixed inset-0 z-[98]"
-                onClick={() => setShowHelp(false)}
-              />
-              <div
-                className="fixed w-64 rounded-xl border bg-popover shadow-lg p-3 space-y-1 text-sm z-[99]"
-                style={{ top: helpPos.top, right: helpPos.right }}
+          {/* Markdown shortcuts — Radix Popover handles dialog layering correctly */}
+          <Popover>
+            <PopoverTrigger asChild>
+              <button
+                type="button"
+                title="Markdown shortcuts"
+                className="p-1.5 rounded text-sm transition-colors text-muted-foreground hover:bg-black/[0.07] dark:hover:bg-white/[0.08] hover:text-foreground"
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
-                    Markdown shortcuts
-                  </span>
+                <HelpCircle className="h-3.5 w-3.5" />
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-60 p-3" align="end" side="bottom">
+              <p className="font-semibold text-xs uppercase tracking-wide text-muted-foreground mb-2">
+                Markdown shortcuts
+              </p>
+              <div className="space-y-0.5">
+                {MD_SHORTCUTS.map(({ md, label, run }) => (
                   <button
-                    onClick={() => setShowHelp(false)}
-                    className="p-0.5 rounded hover:bg-black/[0.07] dark:hover:bg-white/[0.08]"
+                    key={md}
+                    type="button"
+                    className="w-full flex items-center justify-between gap-3 py-1 px-1.5 rounded hover:bg-black/[0.06] dark:hover:bg-white/[0.06] transition-colors text-left cursor-pointer"
+                    onClick={() => { run(editor); }}
                   >
-                    <X className="h-3 w-3" />
-                  </button>
-                </div>
-                {MD_SHORTCUTS.map(({ md, label }) => (
-                  <div key={md} className="flex items-center justify-between gap-3 py-0.5">
                     <span className="text-muted-foreground text-xs">{label}</span>
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono shrink-0">{md}</code>
-                  </div>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono shrink-0 text-foreground/80">{md}</code>
+                  </button>
                 ))}
-                <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                  Type these shortcuts directly while writing
-                </p>
               </div>
-            </>,
-            document.body,
-          )}
+              <p className="text-[10px] text-muted-foreground pt-2 mt-1 border-t">
+                Click to insert · or type directly while writing
+              </p>
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Secondary row — list/blockquote/strikethrough */}

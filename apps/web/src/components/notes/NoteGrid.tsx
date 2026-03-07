@@ -38,7 +38,13 @@ function getColSpan(size: string): number {
 }
 
 // ── Section separator card ─────────────────────────────────────────────────────
-function SectionCard({ note, view }: { note: Note; view: string }) {
+function SectionCard({
+  note, view, dragHandleRef, dragListeners,
+}: {
+  note: Note; view: string
+  dragHandleRef?: (el: HTMLElement | null) => void
+  dragListeners?: Record<string, unknown>
+}) {
   const qc = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(note.title || 'Section')
@@ -71,10 +77,12 @@ function SectionCard({ note, view }: { note: Note; view: string }) {
 
   return (
     <div className="group flex items-center gap-2 py-3 px-1">
-      {/* Drag handle — visual affordance (drag initiated by parent wrapper) */}
+      {/* Drag handle — only this element triggers drag for sections */}
       {view === 'active' && (
         <div
-          className="p-0.5 text-muted-foreground opacity-0 group-hover:opacity-50 transition-opacity"
+          ref={dragHandleRef}
+          {...dragListeners}
+          className="p-0.5 text-muted-foreground opacity-0 group-hover:opacity-60 hover:!opacity-100 transition-opacity cursor-grab active:cursor-grabbing touch-none"
           title="Drag to reorder"
         >
           <GripVertical className="h-4 w-4" />
@@ -127,7 +135,10 @@ function SectionCard({ note, view }: { note: Note; view: string }) {
 }
 
 function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archived' | 'trashed' }) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
+  const {
+    attributes, listeners, setNodeRef, setActivatorNodeRef,
+    transform, transition, isDragging,
+  } = useSortable({
     id: note.id,
     disabled: view !== 'active',
   })
@@ -139,20 +150,23 @@ function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archiv
   return (
     <div
       ref={setNodeRef}
-      className={cn('note-card-wrapper', view === 'active' && 'cursor-grab active:cursor-grabbing')}
+      className={cn(
+        'note-card-wrapper',
+        // Only non-sections get a grab cursor on the whole card
+        view === 'active' && !isSection && 'cursor-grab active:cursor-grabbing',
+      )}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
         opacity: isDragging ? 0 : 1,
-        // Sections span full width; wide notes span multiple columns
         gridColumn: isSection ? '1 / -1' : colSpan && colSpan > 1 ? `span ${colSpan}` : undefined,
       }}
-      // Listeners on wrapper for all sortable items — sections and notes
       {...attributes}
-      {...listeners}
+      // Notes: full-card drag. Sections: handle-only (listeners passed to grip).
+      {...(!isSection ? listeners : {})}
     >
       {isSection
-        ? <SectionCard note={note} view={view} />
+        ? <SectionCard note={note} view={view} dragHandleRef={setActivatorNodeRef} dragListeners={listeners} />
         : <NoteCard note={note} view={view} />
       }
     </div>

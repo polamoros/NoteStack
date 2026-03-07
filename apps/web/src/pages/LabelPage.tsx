@@ -3,6 +3,7 @@ import { trpc } from '@/api/client'
 import { NoteGrid } from '@/components/notes/NoteGrid'
 import { NoteCreateBar } from '@/components/notes/NoteCreateBar'
 import { Tag } from 'lucide-react'
+import { LabelIcon } from '@/components/labels/LabelIcon'
 
 export function LabelPage() {
   const { id } = useParams<{ id: string }>()
@@ -18,7 +19,10 @@ export function LabelPage() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center gap-2">
-        <Tag className="h-5 w-5" />
+        {label
+          ? <LabelIcon icon={label.icon} color={label.color} size={20} />
+          : <Tag className="h-5 w-5 text-muted-foreground" />
+        }
         <h1 className="text-xl font-semibold">{label?.name ?? 'Label'}</h1>
       </div>
 
