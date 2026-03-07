@@ -70,7 +70,7 @@ function SectionCard({ note, view }: { note: Note; view: string }) {
   }
 
   return (
-    <div className="group flex items-center gap-2 py-3 px-1 cursor-grab active:cursor-grabbing">
+    <div className="group flex items-center gap-2 py-3 px-1">
       {/* Drag handle — visual affordance (drag initiated by parent wrapper) */}
       {view === 'active' && (
         <div
@@ -139,7 +139,7 @@ function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archiv
   return (
     <div
       ref={setNodeRef}
-      className="note-card-wrapper"
+      className={cn('note-card-wrapper', view === 'active' && 'cursor-grab active:cursor-grabbing')}
       style={{
         transform: CSS.Transform.toString(transform),
         transition,
@@ -176,15 +176,15 @@ function parseSizeForGhost(size: string): { width: number | null; height: number
 
 /** Lightweight drag ghost shown by DragOverlay — avoids mounting full NoteCard with side effects */
 function NoteCardGhost({ note }: { note: Note }) {
-  // Section separator ghost
+  // Section separator ghost — use fixed-width lines; DragOverlay has no parent width so flex-1 collapses
   if (note.type === 'SECTION') {
     return (
-      <div className="flex items-center gap-2 w-full py-3 px-1 opacity-80">
-        <div className="flex-1 h-px bg-border" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+      <div className="flex items-center gap-2 py-2 px-2 opacity-90 min-w-[220px] rounded-lg border border-dashed border-border bg-background/80 shadow-md backdrop-blur-sm">
+        <div className="h-px w-10 bg-border/70 shrink-0" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap px-1">
           {note.title || 'Section'}
         </span>
-        <div className="flex-1 h-px bg-border" />
+        <div className="h-px w-10 bg-border/70 shrink-0" />
       </div>
     )
   }
@@ -237,7 +237,9 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
   const selectedNoteIds = useUIStore((s) => s.selectedNoteIds)
   const clearNoteSelection = useUIStore((s) => s.clearNoteSelection)
   const selectAllNotes = useUIStore((s) => s.selectAllNotes)
-  const reorder = trpc.notes.reorder.useMutation()
+  const reorder = trpc.notes.reorder.useMutation({
+    onSuccess: () => qc.invalidateQueries({ queryKey: [['notes']] }),
+  })
   const [activeNote, setActiveNote] = useState<Note | null>(null)
 
   // Ctrl/Cmd+A → select all visible notes; Escape → deselect
@@ -291,13 +293,13 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
     )
 
     qc.setQueriesData({ queryKey: [['notes', 'list']] }, (old: any) => {
-      if (!old) return old
-      return {
-        ...old,
-        notes: old.notes.map((n: Note) =>
-          n.id === active.id ? { ...n, sortOrder: newSortOrder } : n,
-        ),
-      }
+      if (!old || !Array.isArray(old.notes)) return old
+      const updated: Note[] = old.notes.map((n: Note) =>
+        n.id === active.id ? { ...n, sortOrder: newSortOrder } : n,
+      )
+      // Re-sort by sortOrder so the array position reflects the new visual order immediately
+      updated.sort((a, b) => (a.sortOrder < b.sortOrder ? -1 : a.sortOrder > b.sortOrder ? 1 : 0))
+      return { ...old, notes: updated }
     })
 
     reorder.mutate({ id: active.id as string, newSortOrder })
