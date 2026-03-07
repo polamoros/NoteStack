@@ -25,18 +25,20 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
-    /* Note background colors - light mode (soft, low-saturation tints) */
-    --note-default: 0 0% 99%;
-    --note-red: 4 72% 93%;
-    --note-orange: 26 78% 92%;
-    --note-yellow: 46 82% 91%;
-    --note-green: 142 45% 91%;
-    --note-teal: 168 50% 89%;
-    --note-blue: 213 65% 92%;
-    --note-purple: 268 55% 93%;
-    --note-pink: 330 60% 92%;
-    --note-brown: 27 50% 88%;
-    --note-gray: 220 10% 92%;
+    /* Note background colors - light mode.
+       Hues match the vivid swatch colors exactly (same degree, same saturation),
+       lightness pushed to 92-95% so they read as gentle card tints. */
+    --note-default: 220 14% 99%;
+    --note-red:     0  90% 94%;
+    --note-orange:  24 97% 93%;
+    --note-yellow:  45 97% 90%;
+    --note-green:   142 70% 92%;
+    --note-teal:    172 63% 92%;
+    --note-blue:    213 92% 94%;
+    --note-purple:  270 93% 95%;
+    --note-pink:    322 86% 95%;
+    --note-brown:   28 34% 92%;
+    --note-gray:    220  9% 93%;
   }
 
   .dark {
@@ -60,18 +62,18 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    /* Note background colors - dark mode (rich, deep tones) */
-    --note-default: 222 20% 13%;
-    --note-red: 4 48% 20%;
-    --note-orange: 22 55% 18%;
-    --note-yellow: 38 52% 16%;
-    --note-green: 145 40% 16%;
-    --note-teal: 165 40% 15%;
-    --note-blue: 220 48% 18%;
-    --note-purple: 265 42% 20%;
-    --note-pink: 330 45% 19%;
-    --note-brown: 25 30% 17%;
-    --note-gray: 220 10% 17%;
+    /* Note background colors - dark mode (same hues, deep tones) */
+    --note-default: 220 20% 13%;
+    --note-red:     0  55% 18%;
+    --note-orange:  24 60% 16%;
+    --note-yellow:  45 55% 14%;
+    --note-green:   142 45% 15%;
+    --note-teal:    172 45% 14%;
+    --note-blue:    213 55% 17%;
+    --note-purple:  270 50% 19%;
+    --note-pink:    322 50% 18%;
+    --note-brown:   28 30% 16%;
+    --note-gray:    220 10% 17%;
   }
 
   * {
