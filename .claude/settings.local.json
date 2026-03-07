@@ -85,7 +85,22 @@
       "Bash(npx corepack pnpm --version)",
       "Bash(npx corepack pnpm --filter @notes/web build)",
       "Bash(npx corepack pnpm --filter web exec tsc --noEmit)",
-      "Bash(npx corepack pnpm --filter web build)"
+      "Bash(npx corepack pnpm --filter web build)",
+      "Bash(pgrep -fl \"vite\\\\|tsx\\\\|ts-node\")",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(node /Users/polamoros/Projects/notes/apps/api/node_modules/.bin/pnpm --version)",
+      "Bash(command -v pnpm)",
+      "Bash(echo \"PATH=$PATH\")",
+      "Bash(kill 14742)",
+      "Bash(curl -s http://localhost:3001/api/auth/get-session)",
+      "Bash(lsof -ti :5173)",
+      "Bash(xargs kill -9)",
+      "Bash(curl -s -X POST http://localhost:3001/api/auth/sign-in/email -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"test@test.com\"\",\"\"password\"\":\"\"wrongpassword\"\"}')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\" -X POST http://localhost:3001/api/auth/sign-in/email -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"test@test.com\"\",\"\"password\"\":\"\"wrongpassword\"\"}')",
+      "Bash(curl -s -w \"\\\\nHTTP %{http_code}\" -X POST http://localhost:3001/api/auth/sign-in/email -H \"Content-Type: application/json\" -d '{\"\"email\"\":\"\"admin@notes.local\"\",\"\"password\"\":\"\"test\"\"}')",
+      "Bash(node -e \":*)",
+      "Bash(node_modules/.bin/prisma format)",
+      "Bash(node -e \"const fs=require\\(''fs''\\);const s=fs.readFileSync\\(''./prisma/schema.prisma'',''utf8''\\);const m=s.match\\(/enum NoteType \\\\{[^}]*\\\\}/\\);console.log\\(m?m[0]:''not found''\\)\")"
     ]
   }
 }

@@ -17,7 +17,7 @@ model User {
   image         String?
   createdAt     DateTime
   updatedAt     DateTime
-  role          String?   @default("user")   // "user" | "admin"
+  role          String?   @default("user") // "user" | "admin"
   banned        Boolean?
   banReason     String?
   banExpires    DateTime?
@@ -25,9 +25,9 @@ model User {
   accounts      Account[]
 
   // App relations
-  notes         Note[]
-  labels        Label[]
-  stacks        Stack[]
+  notes          Note[]
+  labels         Label[]
+  stacks         Stack[]
   receivedShares NoteShare[]
 }
 
@@ -79,20 +79,20 @@ model Note {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  title     String   @default("")
-  type      String   @default("RICH")     // "RICH" | "TODO" | "TASK"
-  color     String   @default("DEFAULT")  // NoteColor enum values
-  size      String   @default("AUTO")     // "SMALL" | "MEDIUM" | "LARGE" | "AUTO"
-  status    String   @default("ACTIVE")   // "ACTIVE" | "ARCHIVED" | "TRASHED"
-  isPinned  Boolean  @default(false)
-  content   String?  // Tiptap JSON string for RICH type
-  sortOrder String   @default("")         // fractional-indexing string
+  title     String  @default("")
+  type      String  @default("RICH") // "RICH" | "TODO" | "TASK"
+  color     String  @default("DEFAULT") // NoteColor enum values
+  size      String  @default("AUTO") // "SMALL" | "MEDIUM" | "LARGE" | "AUTO"
+  status    String  @default("ACTIVE") // "ACTIVE" | "ARCHIVED" | "TRASHED"
+  isPinned  Boolean @default(false)
+  content   String? // Tiptap JSON string for RICH type
+  sortOrder String  @default("") // fractional-indexing string
 
   trashedAt        DateTime?
-  publicShareToken String?   @unique  // Set when note is publicly shared via link
+  publicShareToken String?   @unique // Set when note is publicly shared via link
 
-  stackId   String?
-  stack     Stack?    @relation(fields: [stackId], references: [id], onDelete: SetNull)
+  stackId String?
+  stack   Stack?  @relation(fields: [stackId], references: [id], onDelete: SetNull)
 
   todoItems TodoItem[]
   taskSteps TaskStep[]
@@ -140,8 +140,8 @@ model Stack {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  icon      String?  // Lucide icon name e.g. "Home", "Briefcase"
-  color     String?  // Hex color e.g. "#3b82f6"
+  icon      String? // Lucide icon name e.g. "Home", "Briefcase"
+  color     String? // Hex color e.g. "#3b82f6"
   sortOrder String   @default("")
   notes     Note[]
 
@@ -157,8 +157,8 @@ model Label {
   userId    String
   user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  color     String?     // Hex color e.g. "#4ade80"
-  icon      String?     // Lucide icon name e.g. "Star", "Home", "Briefcase"
+  color     String? // Hex color e.g. "#4ade80"
+  icon      String? // Lucide icon name e.g. "Star", "Home", "Briefcase"
   notes     NoteLabel[]
 
   @@unique([userId, name])
@@ -177,15 +177,15 @@ model NoteLabel {
 // ─── Reminders ────────────────────────────────────────────────────────────────
 
 model Reminder {
-  id             String    @id @default(cuid())
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  noteId         String
-  note           Note      @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  noteId    String
+  note      Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
-  scheduledAt    DateTime           // DTSTART anchor
-  rrule          String?            // RFC 5545 RRULE string (null = one-shot)
-  nextOccurrence DateTime?          // cached computed value
+  scheduledAt    DateTime // DTSTART anchor
+  rrule          String? // RFC 5545 RRULE string (null = one-shot)
+  nextOccurrence DateTime? // cached computed value
   isAcknowledged Boolean   @default(false)
   firedAt        DateTime?
 
@@ -202,7 +202,7 @@ model NoteShare {
   note             Note     @relation(fields: [noteId], references: [id], onDelete: Cascade)
   sharedWithUserId String
   sharedWithUser   User     @relation(fields: [sharedWithUserId], references: [id], onDelete: Cascade)
-  permission       String   @default("VIEW")   // "VIEW" | "EDIT"
+  permission       String   @default("VIEW") // "VIEW" | "EDIT"
 
   @@unique([noteId, sharedWithUserId])
   @@index([sharedWithUserId])
@@ -222,7 +222,7 @@ model AppSetting {
 model OidcProvider {
   id           String   @id @default(cuid())
   createdAt    DateTime @default(now())
-  name         String   @unique   // Display name e.g. "Google", "Authentik"
+  name         String   @unique // Display name e.g. "Google", "Authentik"
   issuerUrl    String
   clientId     String
   clientSecret String

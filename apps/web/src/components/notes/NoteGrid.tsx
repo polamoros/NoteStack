@@ -38,7 +38,7 @@ function getColSpan(size: string): number {
 }
 
 // ── Section separator card ─────────────────────────────────────────────────────
-function SectionCard({ note, view, dragListeners }: { note: Note; view: string; dragListeners?: Record<string, unknown> }) {
+function SectionCard({ note, view }: { note: Note; view: string }) {
   const qc = useQueryClient()
   const [editing, setEditing] = useState(false)
   const [title, setTitle] = useState(note.title || 'Section')
@@ -70,12 +70,11 @@ function SectionCard({ note, view, dragListeners }: { note: Note; view: string; 
   }
 
   return (
-    <div className="group flex items-center gap-2 py-3 px-1">
-      {/* Drag handle — only shown when drag is enabled */}
-      {dragListeners && (
+    <div className="group flex items-center gap-2 py-3 px-1 cursor-grab active:cursor-grabbing">
+      {/* Drag handle — visual affordance (drag initiated by parent wrapper) */}
+      {view === 'active' && (
         <div
-          {...(dragListeners as React.HTMLAttributes<HTMLDivElement>)}
-          className="cursor-grab active:cursor-grabbing p-0.5 text-muted-foreground opacity-0 group-hover:opacity-40 hover:!opacity-100 transition-opacity touch-none"
+          className="p-0.5 text-muted-foreground opacity-0 group-hover:opacity-50 transition-opacity"
           title="Drag to reorder"
         >
           <GripVertical className="h-4 w-4" />
@@ -148,12 +147,12 @@ function SortableNoteCard({ note, view }: { note: Note; view: 'active' | 'archiv
         // Sections span full width; wide notes span multiple columns
         gridColumn: isSection ? '1 / -1' : colSpan && colSpan > 1 ? `span ${colSpan}` : undefined,
       }}
-      // Non-section notes: drag listeners on the whole card
-      {...(!isSection ? { ...attributes, ...listeners } : { ...attributes })}
+      // Listeners on wrapper for all sortable items — sections and notes
+      {...attributes}
+      {...listeners}
     >
       {isSection
-        // Sections: listeners forwarded to the grip handle inside SectionCard
-        ? <SectionCard note={note} view={view} dragListeners={listeners} />
+        ? <SectionCard note={note} view={view} />
         : <NoteCard note={note} view={view} />
       }
     </div>

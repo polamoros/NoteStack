@@ -9,6 +9,7 @@ import { useEffect, useRef, useState } from 'react'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
   Code, Minus, ImagePlus, Link2, HelpCircle, FileCode2, X, Mic, Square,
+  ChevronDown, Strikethrough, Quote,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { JSONContent } from '@tiptap/react'
@@ -20,7 +21,16 @@ function ImageView({ node, updateAttributes, selected }: any) {
     src: string; alt: string | null; width: string | null; align: string | null
   }
   const [hovered, setHovered] = useState(false)
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const showControls = hovered || selected
+
+  function handleMouseEnter() {
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current)
+    setHovered(true)
+  }
+  function handleMouseLeave() {
+    hideTimerRef.current = setTimeout(() => setHovered(false), 150)
+  }
 
   const alignStyle: React.CSSProperties =
     align === 'left'   ? { marginRight: 'auto', marginLeft: 0 } :
@@ -30,12 +40,12 @@ function ImageView({ node, updateAttributes, selected }: any) {
 
   return (
     <NodeViewWrapper>
-      {/* Relative container so absolute controls overlay the image */}
+      {/* Controls below image (not absolute) to avoid overflow:hidden clipping */}
       <div
-        className="my-2 relative inline-block"
+        className="my-2"
         style={{ width: width ?? '100%', maxWidth: '100%', ...alignStyle }}
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
       >
         <img
           src={src}
@@ -43,49 +53,49 @@ function ImageView({ node, updateAttributes, selected }: any) {
           draggable={false}
           className={cn(
             'rounded-lg block max-w-full w-full transition-all',
-            selected && 'ring-2 ring-primary',
+            selected
+              ? 'ring-2 ring-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.25)]'
+              : 'hover:ring-1 hover:ring-primary/30',
           )}
         />
-        {/* Controls — floating over the bottom of the image, no layout impact */}
-        {showControls && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex items-center gap-1 z-10 pointer-events-auto">
-            <div className="flex gap-0.5 bg-black/80 rounded-full px-2 py-1 shadow-lg">
-              {['25%', '50%', '75%', '100%'].map((w) => (
-                <button
-                  key={w}
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); updateAttributes({ width: w }) }}
-                  className={cn(
-                    'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
-                    width === w ? 'bg-white/35' : 'hover:bg-white/20',
-                  )}
-                >
-                  {w}
-                </button>
-              ))}
-            </div>
-            <div className="flex gap-0.5 bg-black/80 rounded-full px-2 py-1 shadow-lg">
-              {[
-                { key: 'left',   label: '⇤' },
-                { key: 'center', label: '↔' },
-                { key: 'right',  label: '⇥' },
-              ].map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  onMouseDown={(e) => { e.preventDefault(); updateAttributes({ align: key }) }}
-                  className={cn(
-                    'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
-                    align === key ? 'bg-white/35' : 'hover:bg-white/20',
-                  )}
-                  title={`Align ${key}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+        {/* Controls always in DOM below image; invisible when not hovered to avoid layout shifts */}
+        <div className={cn('flex items-center gap-1 mt-1 transition-opacity', !showControls && 'opacity-0 pointer-events-none')}>
+          <div className="flex gap-0.5 bg-black/80 rounded-full px-2 py-1 shadow-lg">
+            {['25%', '50%', '75%', '100%'].map((w) => (
+              <button
+                key={w}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); updateAttributes({ width: w }) }}
+                className={cn(
+                  'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
+                  width === w ? 'bg-white/35' : 'hover:bg-white/20',
+                )}
+              >
+                {w}
+              </button>
+            ))}
           </div>
-        )}
+          <div className="flex gap-0.5 bg-black/80 rounded-full px-2 py-1 shadow-lg">
+            {[
+              { key: 'left',   label: '⇤' },
+              { key: 'center', label: '↔' },
+              { key: 'right',  label: '⇥' },
+            ].map(({ key, label }) => (
+              <button
+                key={key}
+                type="button"
+                onMouseDown={(e) => { e.preventDefault(); updateAttributes({ align: key }) }}
+                className={cn(
+                  'text-[11px] px-1.5 py-0.5 rounded-full text-white transition-colors',
+                  align === key ? 'bg-white/35' : 'hover:bg-white/20',
+                )}
+                title={`Align ${key}`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
     </NodeViewWrapper>
   )
@@ -96,7 +106,7 @@ function ImageView({ node, updateAttributes, selected }: any) {
 function AudioView({ node, selected }: any) {
   return (
     <NodeViewWrapper>
-      <div className={cn('my-2 rounded-lg transition-all', selected && 'ring-2 ring-primary')}>
+      <div className={cn('my-2 rounded-lg transition-all', selected && 'ring-2 ring-primary shadow-[0_0_0_3px_hsl(var(--primary)/0.25)]')}>
         {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <audio controls src={node.attrs.src} className="h-9 max-w-full w-72" />
       </div>
@@ -292,6 +302,7 @@ interface NoteEditorRichProps {
 
 export function NoteEditorRich({ content, onChange, className }: NoteEditorRichProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const helpBtnRef = useRef<HTMLButtonElement>(null)
 
   // Hyperlink
   const [linkMode,  setLinkMode]  = useState(false)
@@ -299,6 +310,10 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
 
   // Help dropdown
   const [showHelp, setShowHelp] = useState(false)
+  const [helpPos, setHelpPos] = useState({ top: 0, right: 0 })
+
+  // Secondary toolbar row
+  const [toolbarExpanded, setToolbarExpanded] = useState(false)
 
   // Paste-markdown mode
   const [mdMode, setMdMode] = useState(false)
@@ -383,7 +398,17 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
     if (!editor || !linkValue.trim()) return
     let url = linkValue.trim()
     if (!url.startsWith('http://') && !url.startsWith('https://')) url = `https://${url}`
-    editor.chain().focus().setLink({ href: url }).run()
+    const { from, to } = editor.state.selection
+    if (from === to) {
+      // No text selected — insert URL as a link
+      editor.chain().focus().insertContent({
+        type: 'text',
+        text: url,
+        marks: [{ type: 'link', attrs: { href: url } }],
+      }).run()
+    } else {
+      editor.chain().focus().setLink({ href: url }).run()
+    }
     setLinkValue('')
     setLinkMode(false)
   }
@@ -400,7 +425,13 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
   }
 
   // ── Help dropdown ─────────────────────────────────────────────────────────
-  function handleHelpToggle() { setShowHelp((v) => !v) }
+  function handleHelpToggle() {
+    if (!showHelp && helpBtnRef.current) {
+      const rect = helpBtnRef.current.getBoundingClientRect()
+      setHelpPos({ top: rect.bottom + 4, right: window.innerWidth - rect.right })
+    }
+    setShowHelp((v) => !v)
+  }
 
   // ── Voice recording ───────────────────────────────────────────────────────
   async function startRecording() {
@@ -523,32 +554,6 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             <Link2 className="h-3.5 w-3.5" />
           </ToolbarButton>
 
-          <ToolbarButton
-            active={editor.isActive('bulletList')}
-            onClick={() => editor.chain().focus().toggleBulletList().run()}
-            title="Bullet list (- )"
-          >
-            <List className="h-3.5 w-3.5" />
-          </ToolbarButton>
-
-          <ToolbarButton
-            active={editor.isActive('orderedList')}
-            onClick={() => editor.chain().focus().toggleOrderedList().run()}
-            title="Ordered list (1. )"
-          >
-            <ListOrdered className="h-3.5 w-3.5" />
-          </ToolbarButton>
-
-          <ToolbarButton
-            active={editor.isActive('blockquote')}
-            onClick={() => editor.chain().focus().toggleBlockquote().run()}
-            title="Blockquote (> )"
-          >
-            <svg className="h-3.5 w-3.5" viewBox="0 0 16 16" fill="currentColor">
-              <path d="M3 4h2L3 8h2L3 12H1L3 8H1L3 4zm6 0h2L9 8h2L9 12H7L9 8H7L9 4z"/>
-            </svg>
-          </ToolbarButton>
-
           {/* Voice memo / recording indicator */}
           {recording ? (
             <button
@@ -574,6 +579,15 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             </ToolbarButton>
           )}
 
+          {/* Expand secondary row */}
+          <ToolbarButton
+            active={toolbarExpanded}
+            onClick={() => setToolbarExpanded((v) => !v)}
+            title="More formatting options"
+          >
+            <ChevronDown className={cn('h-3.5 w-3.5 transition-transform', toolbarExpanded && 'rotate-180')} />
+          </ToolbarButton>
+
           {/* ── Spacer → push right-side buttons ── */}
           <div className="flex-1" />
 
@@ -586,55 +600,94 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             <FileCode2 className="h-3.5 w-3.5" />
           </ToolbarButton>
 
-          {/* Markdown help — absolute-position dropdown (safe inside dialogs with CSS transforms) */}
-          <div className="relative">
-            <button
-              onClick={handleHelpToggle}
-              type="button"
-              title="Markdown shortcuts"
-              className={cn(
-                'p-1.5 rounded text-sm transition-colors',
-                showHelp
-                  ? 'bg-accent text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-              )}
-            >
-              <HelpCircle className="h-3.5 w-3.5" />
-            </button>
-
-            {showHelp && (
-              <>
-                {/* Click-outside backdrop */}
-                <div
-                  className="fixed inset-0 z-[48]"
-                  onClick={() => setShowHelp(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 w-64 rounded-xl border bg-popover shadow-lg p-3 space-y-1 text-sm z-[49]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
-                      Markdown shortcuts
-                    </span>
-                    <button
-                      onClick={() => setShowHelp(false)}
-                      className="p-0.5 rounded hover:bg-accent"
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                  {MD_SHORTCUTS.map(({ md, label }) => (
-                    <div key={md} className="flex items-center justify-between gap-3 py-0.5">
-                      <span className="text-muted-foreground text-xs">{label}</span>
-                      <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono shrink-0">{md}</code>
-                    </div>
-                  ))}
-                  <p className="text-[10px] text-muted-foreground pt-1 border-t">
-                    Type these shortcuts directly while writing
-                  </p>
-                </div>
-              </>
+          {/* Markdown help — fixed-position dropdown (safe inside dialogs with CSS transforms) */}
+          <button
+            ref={helpBtnRef}
+            onClick={handleHelpToggle}
+            type="button"
+            title="Markdown shortcuts"
+            className={cn(
+              'p-1.5 rounded text-sm transition-colors',
+              showHelp
+                ? 'bg-accent text-accent-foreground'
+                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
             )}
-          </div>
+          >
+            <HelpCircle className="h-3.5 w-3.5" />
+          </button>
+
+          {showHelp && (
+            <>
+              {/* Click-outside backdrop */}
+              <div
+                className="fixed inset-0 z-[48]"
+                onClick={() => setShowHelp(false)}
+              />
+              <div
+                className="fixed w-64 rounded-xl border bg-popover shadow-lg p-3 space-y-1 text-sm z-[49]"
+                style={{ top: helpPos.top, right: helpPos.right }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="font-semibold text-xs uppercase tracking-wide text-muted-foreground">
+                    Markdown shortcuts
+                  </span>
+                  <button
+                    onClick={() => setShowHelp(false)}
+                    className="p-0.5 rounded hover:bg-accent"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+                {MD_SHORTCUTS.map(({ md, label }) => (
+                  <div key={md} className="flex items-center justify-between gap-3 py-0.5">
+                    <span className="text-muted-foreground text-xs">{label}</span>
+                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono shrink-0">{md}</code>
+                  </div>
+                ))}
+                <p className="text-[10px] text-muted-foreground pt-1 border-t">
+                  Type these shortcuts directly while writing
+                </p>
+              </div>
+            </>
+          )}
         </div>
+
+        {/* Secondary row — list/blockquote/strikethrough */}
+        {toolbarExpanded && (
+          <div className="flex items-center gap-0.5 pt-0.5">
+            <ToolbarButton
+              active={editor.isActive('bulletList')}
+              onClick={() => editor.chain().focus().toggleBulletList().run()}
+              title="Bullet list (- )"
+            >
+              <List className="h-3.5 w-3.5" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor.isActive('orderedList')}
+              onClick={() => editor.chain().focus().toggleOrderedList().run()}
+              title="Ordered list (1. )"
+            >
+              <ListOrdered className="h-3.5 w-3.5" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor.isActive('blockquote')}
+              onClick={() => editor.chain().focus().toggleBlockquote().run()}
+              title="Blockquote (> )"
+            >
+              <Quote className="h-3.5 w-3.5" />
+            </ToolbarButton>
+
+            <ToolbarButton
+              active={editor.isActive('strike')}
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              title="Strikethrough"
+            >
+              <Strikethrough className="h-3.5 w-3.5" />
+            </ToolbarButton>
+          </div>
+        )}
 
       </div>
 

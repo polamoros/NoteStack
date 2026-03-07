@@ -1,15 +1,16 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { authClient } from '@/lib/auth-client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { trpc } from '@/api/client'
-import { FileText } from 'lucide-react'
+import { FileText, Sun, Moon, Monitor } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useUIStore } from '@/store/ui.store'
 
 export function LoginPage() {
-  const navigate = useNavigate()
+  const theme = useUIStore((s) => s.theme)
+  const setTheme = useUIStore((s) => s.setTheme)
 
   // Shared fields
   const [email, setEmail] = useState('')
@@ -30,15 +31,23 @@ export function LoginPage() {
     setError('')
     setLoading(true)
     try {
-      const result = await authClient.signIn.email({ email, password })
-      if (result.error) {
-        setError(result.error.message ?? 'Invalid email or password')
-      } else {
-        navigate('/')
+      // Use native fetch — authClient.signIn.email() hangs waiting for internal
+      // session refresh that never resolves. Cookie is set via Set-Cookie header.
+      const res = await fetch('/api/auth/sign-in/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include',
+      })
+      if (res.ok) {
+        window.location.href = '/'
+        return
       }
+      const data = await res.json().catch(() => ({}))
+      setError((data as Record<string, string>).message ?? 'Invalid email or password')
+      setLoading(false)
     } catch {
       setError('Login failed. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
@@ -56,30 +65,54 @@ export function LoginPage() {
     }
     setLoading(true)
     try {
-      const result = await authClient.signUp.email({ name, email, password })
-      if (result.error) {
-        setError(result.error.message ?? 'Registration failed')
-      } else {
-        navigate('/')
+      const res = await fetch('/api/auth/sign-up/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password }),
+        credentials: 'include',
+      })
+      if (res.ok) {
+        window.location.href = '/'
+        return
       }
+      const data = await res.json().catch(() => ({}))
+      setError((data as Record<string, string>).message ?? 'Registration failed')
+      setLoading(false)
     } catch {
       setError('Registration failed. Please try again.')
-    } finally {
       setLoading(false)
     }
   }
 
   async function handleOidc(providerId: string) {
     await authClient.signIn.social({
-      provider: providerId as any,
+      provider: providerId as Parameters<typeof authClient.signIn.social>[0]['provider'],
       callbackURL: '/',
     })
   }
 
   const registrationOpen = settings?.registrationOpen === true
 
+  const themeIcon =
+    theme === 'dark' ? <Moon className="h-4 w-4" /> :
+    theme === 'light' ? <Sun className="h-4 w-4" /> :
+    <Monitor className="h-4 w-4" />
+
+  function cycleTheme() {
+    setTheme(theme === 'system' ? 'light' : theme === 'light' ? 'dark' : 'system')
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background px-4">
+      {/* Theme toggle — top right */}
+      <button
+        onClick={cycleTheme}
+        title={`Theme: ${theme}`}
+        className="absolute top-4 right-4 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+      >
+        {themeIcon}
+      </button>
+
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="flex flex-col items-center gap-2">

@@ -155,6 +155,8 @@ export function Sidebar() {
   const [labelManagerOpen, setLabelManagerOpen] = useState(false)
   const [creatingStack, setCreatingStack] = useState(false)
   const { setSidebarOpen } = useUIStore()
+  const { data: session } = authClient.useSession()
+  const isAdmin = (session?.user as { role?: string } | undefined)?.role === 'admin'
 
   const createStack = trpc.stacks.create.useMutation({
     onSuccess: () => {
@@ -291,7 +293,7 @@ export function Sidebar() {
       {/* Bottom actions */}
       <div className="p-3 space-y-1">
         <NavItem to="/settings" icon={<User className="h-4 w-4" />} label="My settings" onClick={handleNavClick} />
-        <NavItem to="/admin" icon={<Settings className="h-4 w-4" />} label="Admin" onClick={handleNavClick} />
+        {isAdmin && <NavItem to="/admin" icon={<Settings className="h-4 w-4" />} label="Admin" onClick={handleNavClick} />}
         <button
           onClick={handleSignOut}
           className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-colors w-full"
