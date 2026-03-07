@@ -6,7 +6,15 @@ All notable changes to NoteStack are documented here.
 
 ## [Unreleased]
 
+### Added
+- **Vivid color picker swatches** — the color picker now shows saturated, recognisable swatch buttons (Tailwind -400 level hues) instead of the same washed-out pastel used for the card background. A `NOTE_SWATCH_COLORS` map in `utils.ts` drives the picker; card background colours are unchanged.
+
+### Changed
+- **Note card polish** — cards are now `rounded-2xl` (was `rounded-lg`), carry a subtle `shadow-sm` at rest, lift with `shadow-md + -translate-y-px` on hover, and use a lighter semi-transparent border (`border-black/[0.06]` light / `border-white/[0.08]` dark) instead of the hard `border-border` value. Note grid gap increased from `0.5 rem` to `0.75 rem`.
+- **Note background colours** — light-mode tints reduced to ~45–65 % saturation (was 77–98 %) for a softer, less candy-like look while keeping the hues clearly distinct. Dark-mode equivalents adjusted to match the same restrained palette.
+
 ### Fixed
+- **Markdown shortcuts dropdown** — the help popover now renders via `createPortal` into `document.body`, escaping the Radix Dialog's `transform: translate(-50%, -50%)` containing block that previously made `position: fixed` elements appear off-screen.
 - **TopBar search alignment** — the search bar is now absolutely centred in the header regardless of the asymmetric widths of the left (sidebar toggle) and right (view/theme controls) groups. Previously `flex-1 max-w-xl` left the search flush-left with a gap before the controls. Fixed by positioning it with `absolute inset-x-0` and `pointer-events-none` on the wrapper (with `pointer-events-auto` restored on the input) so it doesn't block clicks on the overlapping edge buttons.
 - **Section drag & drop** — section headers now preserve their position after a drag operation. Root cause: the optimistic cache update was only mutating `sortOrder` on the moved item without re-sorting the array, so after drop the item snapped back. Fix: re-sort the full notes array by `sortOrder` inside `setQueriesData` so the visual order is immediately correct.
 - **Section drag ghost** — the drag overlay now renders a compact pill badge for section items instead of trying to replicate the full-width separator (which collapsed to zero width inside the fixed-position DragOverlay because `flex-1` had no parent width to fill).

@@ -25,18 +25,18 @@
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
 
-    /* Note background colors - light mode (Tailwind -200 level) */
-    --note-default: 0 0% 100%;
-    --note-red: 0 96% 89%;
-    --note-orange: 24 97% 85%;
-    --note-yellow: 55 98% 88%;
-    --note-green: 142 77% 87%;
-    --note-teal: 166 85% 83%;
-    --note-blue: 213 97% 87%;
-    --note-purple: 270 100% 90%;
-    --note-pink: 326 88% 88%;
-    --note-brown: 25 75% 80%;
-    --note-gray: 220 14% 87%;
+    /* Note background colors - light mode (soft, low-saturation tints) */
+    --note-default: 0 0% 99%;
+    --note-red: 4 72% 93%;
+    --note-orange: 26 78% 92%;
+    --note-yellow: 46 82% 91%;
+    --note-green: 142 45% 91%;
+    --note-teal: 168 50% 89%;
+    --note-blue: 213 65% 92%;
+    --note-purple: 268 55% 93%;
+    --note-pink: 330 60% 92%;
+    --note-brown: 27 50% 88%;
+    --note-gray: 220 10% 92%;
   }
 
   .dark {
@@ -60,18 +60,18 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    /* Note background colors - dark mode (Tailwind -800 level adapted) */
-    --note-default: 222.2 47% 11%;
-    --note-red: 0 62% 23%;
-    --note-orange: 17 75% 20%;
-    --note-yellow: 32 70% 18%;
-    --note-green: 142 55% 18%;
-    --note-teal: 162 55% 17%;
-    --note-blue: 224 65% 20%;
-    --note-purple: 263 55% 24%;
-    --note-pink: 327 58% 22%;
-    --note-brown: 25 35% 18%;
-    --note-gray: 220 14% 18%;
+    /* Note background colors - dark mode (rich, deep tones) */
+    --note-default: 222 20% 13%;
+    --note-red: 4 48% 20%;
+    --note-orange: 22 55% 18%;
+    --note-yellow: 38 52% 16%;
+    --note-green: 145 40% 16%;
+    --note-teal: 165 40% 15%;
+    --note-blue: 220 48% 18%;
+    --note-purple: 265 42% 20%;
+    --note-pink: 330 45% 19%;
+    --note-brown: 25 30% 17%;
+    --note-gray: 220 10% 17%;
   }
 
   * {
@@ -87,7 +87,7 @@
 .note-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 0.5rem;
+  gap: 0.75rem;
   align-items: start;
 }
 

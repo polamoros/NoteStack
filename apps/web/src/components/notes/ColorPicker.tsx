@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Palette } from 'lucide-react'
-import { cn, NOTE_COLORS_LIST, NOTE_COLOR_CLASSES, NOTE_COLOR_LABELS } from '@/lib/utils'
+import { cn, NOTE_COLORS_LIST, NOTE_COLOR_LABELS, NOTE_SWATCH_COLORS } from '@/lib/utils'
 import type { NoteColor } from '@notes/shared'
 
 interface ColorPickerProps {
@@ -39,10 +39,10 @@ export function ColorPicker({ value, onChange, trigger, compact }: ColorPickerPr
               onClick={() => onChange(color)}
               className={cn(
                 'h-7 w-7 rounded-full border-2 transition-transform hover:scale-110',
-                NOTE_COLOR_CLASSES[color],
                 value === color ? 'border-foreground scale-110' : 'border-transparent',
-                color === 'DEFAULT' && 'border border-border',
+                color === 'DEFAULT' && 'border-border',
               )}
+              style={{ backgroundColor: NOTE_SWATCH_COLORS[color] }}
             />
           ))}
         </div>

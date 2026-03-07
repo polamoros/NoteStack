@@ -40,6 +40,21 @@ export const NOTE_COLORS_LIST: NoteColor[] = [
   'TEAL', 'BLUE', 'PURPLE', 'PINK', 'BROWN', 'GRAY',
 ]
 
+/** Vivid swatch colors for the color picker — more saturated than note card bg. */
+export const NOTE_SWATCH_COLORS: Record<NoteColor, string> = {
+  DEFAULT: '#f9fafb',
+  RED:     '#f87171',
+  ORANGE:  '#fb923c',
+  YELLOW:  '#fbbf24',
+  GREEN:   '#4ade80',
+  TEAL:    '#2dd4bf',
+  BLUE:    '#60a5fa',
+  PURPLE:  '#c084fc',
+  PINK:    '#f472b6',
+  BROWN:   '#a87a52',
+  GRAY:    '#9ca3af',
+}
+
 /** Returns className for predefined colors, or inline style for custom hex colors. */
 export function getNoteColorStyle(color: string): { className: string; style?: CSSProperties } {
   if (color.startsWith('#')) {

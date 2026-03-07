@@ -6,6 +6,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Link from '@tiptap/extension-link'
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import {
   Bold, Italic, List, ListOrdered, Heading2, Heading3,
   Code, Minus, ImagePlus, Link2, HelpCircle, FileCode2, X, Mic, Square,
@@ -616,15 +617,15 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             <HelpCircle className="h-3.5 w-3.5" />
           </button>
 
-          {showHelp && (
+          {showHelp && createPortal(
             <>
-              {/* Click-outside backdrop */}
+              {/* Click-outside backdrop — rendered in body to escape dialog's CSS transform */}
               <div
-                className="fixed inset-0 z-[48]"
+                className="fixed inset-0 z-[98]"
                 onClick={() => setShowHelp(false)}
               />
               <div
-                className="fixed w-64 rounded-xl border bg-popover shadow-lg p-3 space-y-1 text-sm z-[49]"
+                className="fixed w-64 rounded-xl border bg-popover shadow-lg p-3 space-y-1 text-sm z-[99]"
                 style={{ top: helpPos.top, right: helpPos.right }}
               >
                 <div className="flex items-center justify-between mb-2">
@@ -648,7 +649,8 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
                   Type these shortcuts directly while writing
                 </p>
               </div>
-            </>
+            </>,
+            document.body,
           )}
         </div>
 

@@ -100,8 +100,9 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
     <>
       <div
         className={cn(
-          'relative rounded-lg border cursor-pointer group transition-shadow duration-150',
-          'hover:shadow-md',
+          'relative rounded-2xl border border-black/[0.06] dark:border-white/[0.08] cursor-pointer group',
+          'shadow-sm transition-all duration-150',
+          'hover:shadow-md hover:-translate-y-px',
           colorClass,
           // Apply named size class only when no pixel height is set
           effectiveHeight === null && (NAMED_SIZE_CLASSES[note.size] ?? NAMED_SIZE_CLASSES.AUTO),
@@ -198,7 +199,7 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
 
         {/* ── Completion progress strip — absolute at the very bottom edge ── */}
         {completionRatio !== null && (
-          <div className="absolute bottom-0 left-0 right-0 h-1.5 rounded-b-lg overflow-hidden bg-black/[0.06] dark:bg-white/[0.08]">
+          <div className="absolute bottom-0 left-0 right-0 h-1.5 rounded-b-2xl overflow-hidden bg-black/[0.06] dark:bg-white/[0.08]">
             <div
               className={cn(
                 'h-full rounded-bl-lg transition-all duration-300',
@@ -212,7 +213,7 @@ export function NoteCard({ note, view = 'active' }: NoteCardProps) {
         {/* ── Action toolbar (visible on hover, hidden in select mode) ─────── */}
         <div
           className={cn(
-            'absolute bottom-0 left-0 right-0 rounded-b-lg pt-8 pb-1.5 px-1.5',
+            'absolute bottom-0 left-0 right-0 rounded-b-2xl pt-8 pb-1.5 px-1.5',
             'bg-gradient-to-t from-black/15 dark:from-black/30 via-transparent to-transparent',
             'transition-opacity duration-100',
             // pointer-events-none on the overlay so clicks to note content always register;
