@@ -8,7 +8,7 @@ import {
   useSensors,
   closestCenter,
 } from '@dnd-kit/core'
-import { SortableContext, useSortable, rectSortingStrategy } from '@dnd-kit/sortable'
+import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { useState, useEffect, useRef } from 'react'
 import { generateKeyBetween } from 'fractional-indexing'
@@ -179,12 +179,12 @@ function NoteCardGhost({ note }: { note: Note }) {
   // Section separator ghost — use fixed-width lines; DragOverlay has no parent width so flex-1 collapses
   if (note.type === 'SECTION') {
     return (
-      <div className="flex items-center gap-2 py-2 px-2 opacity-90 min-w-[220px] rounded-lg border border-dashed border-border bg-background/80 shadow-md backdrop-blur-sm">
-        <div className="h-px w-10 bg-border/70 shrink-0" />
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap px-1">
+      <div className="flex items-center justify-center gap-2 py-2 px-3 opacity-90 min-w-[200px] rounded-lg border border-dashed border-border bg-background/80 shadow-md backdrop-blur-sm">
+        <div className="flex-1 h-px bg-border/70" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
           {note.title || 'Section'}
         </span>
-        <div className="h-px w-10 bg-border/70 shrink-0" />
+        <div className="flex-1 h-px bg-border/70" />
       </div>
     )
   }
@@ -351,7 +351,7 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <SortableContext items={notes.map((n) => n.id)} strategy={rectSortingStrategy}>
+      <SortableContext items={notes.map((n) => n.id)} strategy={verticalListSortingStrategy}>
         {inner}
       </SortableContext>
       <DragOverlay dropAnimation={null}>
