@@ -7,6 +7,7 @@ All notable changes to NoteStack are documented here.
 ## [Unreleased]
 
 ### Fixed
+- **TopBar search alignment** — the search bar is now absolutely centred in the header regardless of the asymmetric widths of the left (sidebar toggle) and right (view/theme controls) groups. Previously `flex-1 max-w-xl` left the search flush-left with a gap before the controls. Fixed by positioning it with `absolute inset-x-0` and `pointer-events-none` on the wrapper (with `pointer-events-auto` restored on the input) so it doesn't block clicks on the overlapping edge buttons.
 - **Section drag & drop** — section headers now preserve their position after a drag operation. Root cause: the optimistic cache update was only mutating `sortOrder` on the moved item without re-sorting the array, so after drop the item snapped back. Fix: re-sort the full notes array by `sortOrder` inside `setQueriesData` so the visual order is immediately correct.
 - **Section drag ghost** — the drag overlay now renders a compact pill badge for section items instead of trying to replicate the full-width separator (which collapsed to zero width inside the fixed-position DragOverlay because `flex-1` had no parent width to fill).
 - **Section drag cursor** — removed duplicate `cursor-grab` / `active:cursor-grabbing` from the inner `SectionCard` element; cursor is now applied once on the outer sortable wrapper so it doesn't interfere with hover states on the edit / delete buttons.

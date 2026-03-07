@@ -55,24 +55,27 @@ export function TopBar() {
   }
 
   return (
-    <header className="flex items-center gap-3 px-4 h-[60px] shrink-0 border-b bg-background/95 backdrop-blur sticky top-0 z-10">
-      <Button variant="ghost" size="icon-sm" onClick={toggleSidebar} className="shrink-0">
+    <header className="relative flex items-center px-4 h-[60px] shrink-0 border-b bg-background/95 backdrop-blur sticky top-0 z-10">
+      {/* Left: sidebar toggle */}
+      <Button variant="ghost" size="icon-sm" onClick={toggleSidebar} className="shrink-0 relative z-10">
         <Menu className="h-4 w-4" />
       </Button>
 
-      {/* Search */}
-      <div className="flex-1 relative max-w-xl">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-        <Input
-          placeholder="Search notes…"
-          className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-        />
+      {/* Search — absolutely centered in the header */}
+      <div className="absolute inset-x-0 top-0 h-full flex items-center justify-center pointer-events-none px-14">
+        <div className="relative w-full max-w-xl pointer-events-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+          <Input
+            placeholder="Search notes…"
+            className="pl-9 bg-secondary/50 border-0 focus-visible:ring-1"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+          />
+        </div>
       </div>
 
       {/* Right controls */}
-      <div className="flex items-center gap-1 shrink-0">
+      <div className="ml-auto flex items-center gap-1 shrink-0 relative z-10">
         <Button
           variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
           size="icon-sm"
