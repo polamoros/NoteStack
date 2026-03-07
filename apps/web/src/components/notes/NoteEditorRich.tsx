@@ -610,8 +610,8 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             className={cn(
               'p-1.5 rounded text-sm transition-colors',
               showHelp
-                ? 'bg-accent text-accent-foreground'
-                : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                ? 'bg-black/[0.12] dark:bg-white/[0.15] text-foreground'
+                : 'text-muted-foreground hover:bg-black/[0.07] dark:hover:bg-white/[0.08] hover:text-foreground',
             )}
           >
             <HelpCircle className="h-3.5 w-3.5" />
@@ -634,7 +634,7 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
                   </span>
                   <button
                     onClick={() => setShowHelp(false)}
-                    className="p-0.5 rounded hover:bg-accent"
+                    className="p-0.5 rounded hover:bg-black/[0.07] dark:hover:bg-white/[0.08]"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -728,7 +728,7 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
           </button>
           <button
             onClick={() => { setLinkMode(false); setLinkValue('') }}
-            className="px-2 text-sm rounded-md hover:bg-accent transition-colors text-muted-foreground"
+            className="px-2 text-sm rounded-md hover:bg-black/[0.07] dark:hover:bg-white/[0.08] transition-colors text-muted-foreground"
           >
             ✕
           </button>
@@ -760,7 +760,7 @@ export function NoteEditorRich({ content, onChange, className }: NoteEditorRichP
             </button>
             <button
               onClick={() => { setMdMode(false); setMdText('') }}
-              className="px-3 py-1.5 text-sm rounded-md hover:bg-accent transition-colors text-muted-foreground"
+              className="px-3 py-1.5 text-sm rounded-md hover:bg-black/[0.07] dark:hover:bg-white/[0.08] transition-colors text-muted-foreground"
             >
               Cancel
             </button>
@@ -794,8 +794,8 @@ function ToolbarButton({
       className={cn(
         'p-1.5 rounded text-sm transition-colors',
         active
-          ? 'bg-accent text-accent-foreground'
-          : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+          ? 'bg-black/[0.12] dark:bg-white/[0.15] text-foreground'
+          : 'text-muted-foreground hover:bg-black/[0.07] dark:hover:bg-white/[0.08] hover:text-foreground',
       )}
     >
       {children}
