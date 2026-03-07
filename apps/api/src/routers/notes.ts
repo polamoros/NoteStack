@@ -253,6 +253,19 @@ export const notesRouter = router({
       return mapNote(note)
     }),
 
+  reorderGroup: authedProcedure
+    .input(z.array(z.object({ id: z.string(), sortOrder: z.string() })))
+    .mutation(async ({ ctx, input }) => {
+      await ctx.db.$transaction(
+        input.map(({ id, sortOrder }) =>
+          ctx.db.note.updateMany({
+            where: { id, userId: ctx.user.id },
+            data: { sortOrder },
+          }),
+        ),
+      )
+    }),
+
   delete: authedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
