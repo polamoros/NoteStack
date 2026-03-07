@@ -176,6 +176,19 @@ function parseSizeForGhost(size: string): { width: number | null; height: number
 
 /** Lightweight drag ghost shown by DragOverlay — avoids mounting full NoteCard with side effects */
 function NoteCardGhost({ note }: { note: Note }) {
+  // Section separator ghost
+  if (note.type === 'SECTION') {
+    return (
+      <div className="flex items-center gap-2 w-full py-3 px-1 opacity-80">
+        <div className="flex-1 h-px bg-border" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground px-1">
+          {note.title || 'Section'}
+        </span>
+        <div className="flex-1 h-px bg-border" />
+      </div>
+    )
+  }
+
   const { className: colorClass, style: colorStyle } = getNoteColorStyle(note.color)
 
   const { width: savedW, height: savedH } = parseSizeForGhost(note.size)
@@ -277,7 +290,7 @@ export function NoteGrid({ notes, view = 'active', showPinnedSection = true }: N
       nextNote?.sortOrder ?? null,
     )
 
-    qc.setQueryData([['notes', 'list']], (old: any) => {
+    qc.setQueriesData({ queryKey: [['notes', 'list']] }, (old: any) => {
       if (!old) return old
       return {
         ...old,

@@ -103,7 +103,7 @@ export function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background px-4">
+    <div className="min-h-screen flex items-start justify-center bg-background px-4 pt-[max(8vh,2.5rem)]">
       {/* Theme toggle — top right */}
       <button
         onClick={cycleTheme}
@@ -137,7 +137,7 @@ export function LoginPage() {
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                 )}
-                onClick={() => { setMode('signin'); setError('') }}
+                onClick={() => { setMode('signin'); setError(''); setLoading(false) }}
               >
                 Sign in
               </button>
@@ -148,7 +148,7 @@ export function LoginPage() {
                     ? 'bg-primary text-primary-foreground'
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                 )}
-                onClick={() => { setMode('signup'); setError('') }}
+                onClick={() => { setMode('signup'); setError(''); setLoading(false) }}
               >
                 Sign up
               </button>
